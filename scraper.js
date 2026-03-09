@@ -4,7 +4,10 @@ chromium.use(stealth);
 const { saveLeads } = require('./storage');
 
 async function searchBusinesses(niche, location) {
-    const browser = await chromium.launch({ headless: false }); 
+    const browser = await chromium.launch({ 
+        headless: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox'] 
+    }); 
     try {
         const page = await browser.newPage();
         
