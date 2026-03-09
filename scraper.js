@@ -1,6 +1,11 @@
 const { chromium } = require('playwright-extra');
-const stealth = require('puppeteer-extra-plugin-stealth')();
-chromium.use(stealth);
+
+// Stealth plugin often forces headed mode. Disable in CI environments.
+if (!process.env.CI) {
+    const stealth = require('puppeteer-extra-plugin-stealth')();
+    chromium.use(stealth);
+}
+
 const { saveLeads } = require('./storage');
 
 async function searchBusinesses(niche, location) {
