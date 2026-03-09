@@ -32,12 +32,26 @@ async function saveLeads(leads) {
             VALUES (@name, @niche, @email, @facebook, @city, @country, @phone, @reviews, @score, @outreach_message, @status)
         `);
 
-        const insertMany = db.transaction((leads) => {
-            for (const lead of leads) insert.run(lead);
-        });
-
         insertMany(leads);
         console.log(`Saved ${leads.length} leads to SQLite database.`);
+
+        // Sync to Firestore
+        try {
+            const batch = firestore.batch();
+            leads.forEach((lead) => {
+                const docRef = firestore.collection('leads').doc();
+                batch.set(docRef, {
+                    ...lead,
+                    created_at: admin.firestore.FieldValue.serverTimestamp(),
+                    updated_at: admin.firestore.FieldValue.serverTimestamp()
+                });
+            });
+            await batch.commit();
+            console.log(`Synced ${leads.length} leads to Firestore.`);
+        } catch (fsError) {
+            console.warn('Firestore sync failed (check if you are logged in/configured):', fsError.message);
+        }
+
     } catch (error) {
         console.error('Error saving leads:', error);
     }
