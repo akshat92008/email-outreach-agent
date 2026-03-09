@@ -27,8 +27,10 @@ This project search for businesses without websites and manages them via an Admi
 
 ### 3. Netlify (Frontend)
 - Link your GitHub repository to Netlify.
-- Set the build command: `npm run build`
-- Set the publish directory: `dist`
+- **Important Settings**:
+  - **Base directory**: `dashboard`
+  - **Build command**: `npm run build`
+  - **Publish directory**: `dist`
 - Set Environment Variable: `VITE_API_URL` to your Firebase Function URL.
 
 ## Tech Stack
