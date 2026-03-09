@@ -2,6 +2,26 @@ const createCsvWriter = require('csv-writer').createObjectCsvWriter;
 const path = require('path');
 const fs = require('fs');
 const db = require('./database/database');
+const admin = require('firebase-admin');
+
+// Initialize Firebase Admin for local OR GitHub Action Firestore sync
+if (!admin.apps.length) {
+    const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT 
+        ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT) 
+        : null;
+
+    if (serviceAccount) {
+        admin.initializeApp({
+            credential: admin.credential.cert(serviceAccount),
+            projectId: 'agent-4dfcc'
+        });
+    } else {
+        admin.initializeApp();
+    }
+}
+const firestore = admin.firestore();
+
+const csvFilePath = path.join(__dirname, 'leads.csv');
 
 const csvWriter = createCsvWriter({
     path: csvFilePath,
@@ -32,6 +52,10 @@ async function saveLeads(leads) {
             VALUES (@name, @niche, @email, @facebook, @city, @country, @phone, @reviews, @score, @outreach_message, @status)
         `);
 
+        const insertMany = db.transaction((leads) => {
+            for (const lead of leads) insert.run(lead);
+        });
+
         insertMany(leads);
         console.log(`Saved ${leads.length} leads to SQLite database.`);
 
@@ -49,7 +73,7 @@ async function saveLeads(leads) {
             await batch.commit();
             console.log(`Synced ${leads.length} leads to Firestore.`);
         } catch (fsError) {
-            console.warn('Firestore sync failed (check if you are logged in/configured):', fsError.message);
+            console.warn('Firestore sync failed (check if you are logged in or have FIREBASE_SERVICE_ACCOUNT secret set):', fsError.message);
         }
 
     } catch (error) {
