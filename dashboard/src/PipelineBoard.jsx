@@ -1,3 +1,6 @@
+import React, { useState } from 'react';
+import { Mail, PhoneCall, Linkedin, Instagram } from 'lucide-react';
+
 const STAGES = [
     { id: 'new', label: 'Inbound', color: 'var(--primary)', icon: '📥' },
     { id: 'contacted', label: 'Outreach', color: '#f39c12', icon: '✉️' },
