@@ -2,8 +2,17 @@ name: Lead Generation Scraper
 
 on:
   schedule:
-    - cron: '0 0 * * *' # Run daily at midnight
-  workflow_dispatch: # Allow manual trigger from GitHub UI
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+    inputs:
+      niche:
+        description: 'Business Niche (e.g., Dentist)'
+        required: true
+        default: 'Dentist'
+      location:
+        description: 'Location (e.g., California)'
+        required: true
+        default: 'California'
 
 jobs:
   scrape:
@@ -29,5 +38,7 @@ jobs:
       - name: Run Scraper
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          NICHE: ${{ github.event.inputs.niche }}
+          LOCATION: ${{ github.event.inputs.location }}
           PORT: 3001
         run: xvfb-run --auto-servernum -- node index.js

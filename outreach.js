@@ -1,51 +1,78 @@
-function calculateLeadScore(lead) {
+/**
+ * Calculates a lead score from 0-100 based on multiple factors.
+ */
+function calculateLeadScore(lead, analysis = null) {
     let score = 0;
-    
-    // +3 if no website (This is our primary filter, but we verify here)
-    if (lead.website_status === 'No' || !lead.hasWebsite) score += 3;
-    
-    // +2 if rating above 4
-    if (parseFloat(lead.reviews) > 4) score += 2;
-    
-    // +2 if reviews > 20
-    const reviewCount = parseInt(lead.reviews.toString().replace(/,/g, ''));
-    if (reviewCount > 20) score += 2;
-    
-    // +1 if located in USA, UK, Canada, Australia
-    const premiumCountries = ['USA', 'United States', 'UK', 'United Kingdom', 'Canada', 'Australia'];
-    if (lead.country && premiumCountries.some(c => lead.country.includes(c))) {
-        score += 1;
+
+    // 1. Website Status (Max 40 points)
+    if (!lead.has_website || lead.has_website === 'No') {
+        score += 40; // High priority for businesses with NO website
+    } else if (analysis && analysis.qualityScore < 50) {
+        score += 25; // Good priority for businesses with BAD websites
+    } else if (analysis && analysis.qualityScore < 75) {
+        score += 10;
     }
-    
-    return score;
+
+    // 2. Business Reputation (Max 30 points)
+    const reviews = parseInt(lead.reviews || 0);
+    const rating = parseFloat(lead.rating || 0);
+
+    if (rating >= 4.0) score += 10;
+    if (reviews > 50) score += 20;
+    else if (reviews > 20) score += 10;
+    else if (reviews > 5) score += 5;
+
+    // 3. Location & Niche (Max 30 points)
+    const premiumCountries = ['USA', 'UK', 'Canada', 'Australia', 'United Arab Emirates'];
+    if (lead.country && premiumCountries.some(c => lead.country.includes(c))) {
+        score += 15;
+    }
+
+    // Niche profitability (Simple heuristic)
+    const highValueNiches = ['Dentist', 'Lawyer', 'Plumbing', 'Real Estate', 'Roofing', 'Medical'];
+    if (lead.niche && highValueNiches.some(n => lead.niche.toLowerCase().includes(n.toLowerCase()))) {
+        score += 15;
+    }
+
+    return Math.min(100, score);
 }
 
-function generateMessage(lead, senderName = 'Your Name') {
-    const { name, city, reviews, rating } = lead;
-    
-    const subject = `Quick idea for ${name}`;
-    
-    let personalizedSnippet = "";
-    if (parseInt(reviews) > 10) {
-        personalizedSnippet = `I noticed you have great reviews (${reviews} reviews) on Google, which is a huge testament to your service.`;
-    } else {
-        personalizedSnippet = `I came across your business while searching for top-rated ${lead.niche || 'services'} in ${city}.`;
-    }
+function getLeadLabel(score) {
+    if (score >= 80) return 'High Value Lead';
+    if (score >= 50) return 'Medium Value Lead';
+    return 'Low Value Lead';
+}
 
-    const body = `Hi ${name},
+/**
+ * Generates personalized outreach messages using AI (simulated with templates for now, 
+ * but structured for Gemini integration).
+ */
+async function generateOutreach(lead, senderName = 'Your Agency') {
+    const { name, niche, city, reviews, rating, has_website } = lead;
 
-${personalizedSnippet}
+    const context = has_website ?
+        `I noticed your current website could use some improvements in speed and mobile design.` :
+        `I noticed your business doesn't have a website yet, which might be costing you customers in ${city}.`;
 
-Many customers search online for services like yours, but it looks like your business doesn't currently have a website. This makes it harder for potential clients to find you and book your services directly.
+    const email = {
+        subject: `Digital Growth for ${name}`,
+        body: `Hi ${name} team,
 
-I specialize in building fast, lead-generating websites for local businesses in the ${lead.niche || 'service'} industry.
+I was looking at ${niche || 'businesses'} in ${city} and saw ${name} has fantastic reviews (${reviews} reviews, ${rating} stars!).
 
-Would you be open to seeing a quick example of what a modern website for ${name} could look like?
+${context}
+
+I specialize in building high-converting websites for local ${niche || 'service'} providers. Would you be open to a 2-minute chat about how a better online presence can help you get even more customers?
 
 Best,
-${senderName}`;
+${senderName}`
+    };
 
-    return { subject, body };
+    const instagramDM = `Hey ${name}! Love the work you're doing in ${city} 👏 I noticed you don't have a website link in your bio - I actually build custom sites for ${niche}s that help double their bookings. Mind if I send over a quick demo?`;
+
+    const facebookMsg = `Hi ${name}, I'm a local web designer and I just saw your business on Google. You have great reviews! I'd love to help you reach even more people with a professional website. Are you currently looking for any help with your digital presence?`;
+
+    return { email, instagramDM, facebookMsg };
 }
 
-module.exports = { generateMessage, calculateLeadScore };
+module.exports = { calculateLeadScore, getLeadLabel, generateOutreach };

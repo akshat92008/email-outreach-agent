@@ -35,4 +35,17 @@ app.patch('/leads/:id/status', async (req, res) => {
     }
 });
 
+const { triggerCloudScan } = require('./github_trigger');
+
+// Trigger new lead scan
+app.post('/leads/scan', async (req, res) => {
+    const { niche, location } = req.body;
+    try {
+        await triggerCloudScan(niche, location);
+        res.json({ success: true, message: `Scan initiated for ${niche} in ${location}` });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 exports.api = functions.https.onRequest(app);

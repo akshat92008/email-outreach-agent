@@ -32,8 +32,8 @@ function isDuplicate(name, city, history) {
 }
 
 const DIRECTORY_DOMAINS = [
-    'yelp.com', 'yellowpages.com', 'yellowbook.com', 'angi.com', 
-    'facebook.com', 'instagram.com', 'linkedin.com', 'tripadvisor.com', 
+    'yelp.com', 'yellowpages.com', 'yellowbook.com', 'angi.com',
+    'facebook.com', 'instagram.com', 'linkedin.com', 'tripadvisor.com',
     'houzz.com', 'thumbtack.com', 'bbb.org', 'crunchbase.com'
 ];
 
@@ -49,26 +49,26 @@ function isDirectory(url) {
 
 async function searchBusinesses(niche, location) {
     console.log(`[SCRAPER VERSION 3.0] Target: Website-Less ${niche} in ${location}`);
-    const browser = await chromium.launch({ 
+    const browser = await chromium.launch({
         headless: true,
         args: [
-            '--no-sandbox', 
-            '--disable-setuid-sandbox', 
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
             '--disable-dev-shm-usage',
             '--disable-gpu',
             '--no-first-run',
             '--no-zygote',
             '--single-process'
-        ] 
-    }); 
+        ]
+    });
     try {
         const page = await browser.newPage();
-        
+
         const query = `${niche} in ${location}`;
         console.log(`[SCRAPER] Query: ${query}`);
-        
+
         await page.goto(`https://www.google.com/maps/search/${encodeURIComponent(query)}`);
-        
+
         // Wait for results
         try {
             await page.waitForSelector('a.hfpxzc', { timeout: 15000 });
@@ -87,7 +87,7 @@ async function searchBusinesses(niche, location) {
         }
 
         await page.screenshot({ path: `debug_${niche.replace(/\s+/g, '_')}_${location.replace(/\s+/g, '_')}.png` });
-        
+
         const businessElements = await page.$$('a.hfpxzc');
         const leads = [];
         const history = getScrapedHistory();
@@ -95,7 +95,7 @@ async function searchBusinesses(niche, location) {
         for (const el of businessElements) {
             const name = await el.getAttribute('aria-label');
             if (!name) continue;
-            
+
             const city = location.split(',')[0].trim();
             if (isDuplicate(name, city, history)) {
                 console.log(`[SCRAPER] Skipping duplicate: ${name} in ${city}`);
@@ -103,7 +103,7 @@ async function searchBusinesses(niche, location) {
             }
 
             const parent = await el.evaluateHandle(node => node.closest('div.Nv2Yzb') || node.parentElement.parentElement);
-            
+
             // Website Detection & Filtering
             const websiteUrl = await parent.evaluate(p => {
                 const link = p.querySelector('a[data-value="Website"]');
@@ -117,17 +117,22 @@ async function searchBusinesses(niche, location) {
                 continue;
             }
 
-            // Extract review data (simulated/simplified for speed)
-            const reviews = await parent.evaluate(p => {
-                const text = p.innerText || '';
-                const match = text.match(/\((\d+)\)/);
-                return match ? match[1] : '0';
+            // Extract review data
+            const reviewData = await parent.evaluate(p => {
+                const ratingElement = p.querySelector('span.mw43f'); // Common rating selector
+                const reviewsElement = p.querySelector('span.UY7F9'); // Common reviews selector
+
+                const rating = ratingElement ? ratingElement.innerText.trim() : '0';
+                const reviewsMatch = reviewsElement ? reviewsElement.innerText.match(/\d+/) : null;
+                const reviews = reviewsMatch ? reviewsMatch[0] : '0';
+
+                return { rating, reviews };
             });
 
-            // Extract phone number if visible in the list
+            // Extract phone number if visible
             const phone = await parent.evaluate(p => {
                 const text = p.innerText || '';
-                const match = text.match(/[\d\s-]{10,}/);
+                const match = text.match(/(\+?\d{1,2}[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}/);
                 return match ? match[0].trim() : 'N/A';
             });
 
@@ -135,7 +140,8 @@ async function searchBusinesses(niche, location) {
                 name,
                 niche,
                 phone,
-                reviews,
+                rating: reviewData.rating,
+                reviews: reviewData.reviews,
                 city,
                 country: location.split(',').pop().trim(),
                 email: null,
@@ -143,13 +149,13 @@ async function searchBusinesses(niche, location) {
                 instagram: null,
                 whatsapp: null,
                 linkedin: null,
-                has_website: !!websiteUrl, // true if it has a directory, false if none
-                original_website: websiteUrl, // store directory link if any
-                status: 'pending',
+                has_website: !!websiteUrl,
+                original_website: websiteUrl,
+                status: 'new',
                 contacted_status: 'pending',
-                score: Math.floor(Math.random() * 10) + 1,
+                score: 0, // Initial score, to be calculated by AI/logic
                 history: [
-                    { event: 'Lead Discovered (Website-Less Target)', timestamp: new Date().toISOString() }
+                    { event: 'Lead Discovered', timestamp: new Date().toISOString() }
                 ]
             });
         }
