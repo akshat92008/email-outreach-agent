@@ -1,6 +1,6 @@
 const { searchBusinesses } = require('./scraper');
 const { verifyAndEnrich } = require('./verifier');
-const { generateMessage, calculateLeadScore } = require('./outreach');
+const { generateOutreach, calculateLeadScore } = require('./outreach');
 const { saveLeads } = require('./storage');
 
 async function main() {
@@ -16,8 +16,8 @@ async function main() {
         const enrichedLeads = [];
         for (let lead of initialLeads) {
             lead = await verifyAndEnrich(lead);
-            const { subject, body } = generateMessage(lead);
-            lead.outreach_message = body;
+            const outreach = await generateOutreach(lead);
+            lead.outreach_message = outreach.email.body;
             lead.score = calculateLeadScore(lead);
             enrichedLeads.push(lead);
         }
