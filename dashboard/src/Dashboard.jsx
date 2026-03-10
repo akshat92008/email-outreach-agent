@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
+import db from './firebase';
 import { 
   Users, 
   Send, 
@@ -12,27 +13,27 @@ import {
   Search
 } from 'lucide-react';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
-
 function Dashboard() {
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
-    fetchLeads();
-  }, []);
+    const q = query(collection(db, "leads"), orderBy("created_at", "desc"));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const leadsData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setLeads(leadsData);
+      setLoading(false);
+    }, (error) => {
+      console.error("Error fetching leads:", error);
+      setLoading(false);
+    });
 
-  const fetchLeads = async () => {
-    try {
-      const res = await axios.get(`${API_BASE}/leads`);
-      setLeads(res.data);
-      setLoading(false);
-    } catch (err) {
-      console.error(err);
-      setLoading(false);
-    }
-  };
+    return () => unsubscribe();
+  }, []);
 
   const filteredLeads = leads.filter(l => 
     l.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -91,7 +92,6 @@ function Dashboard() {
       <div className="card">
         <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem'}}>
           <h2>Recent Leads</h2>
-          <button className="btn btn-outline" onClick={fetchLeads}>Refresh Data</button>
         </div>
         <div style={{overflowX: 'auto'}}>
           <table>
