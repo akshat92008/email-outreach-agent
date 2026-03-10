@@ -174,6 +174,9 @@ function Dashboard() {
             <tbody>
               {filteredLeads.map(lead => {
                 const priority = getPriority(lead.score || 0);
+                // Helper to check if a value is real or a placeholder
+                const isReal = (val) => val && val !== 'Pending Verification' && val !== 'N/A';
+                
                 return (
                   <tr key={lead.id}>
                     <td>
@@ -194,7 +197,7 @@ function Dashboard() {
                     <td>{lead.city}, {lead.country}</td>
                     <td>
                       <div style={{display: 'flex', gap: '0.75rem', alignItems: 'center'}}>
-                        {lead.phone && lead.phone !== 'N/A' ? (
+                        {isReal(lead.phone) ? (
                           <a href={`tel:${lead.phone.replace(/[^0-9+]/g, '')}`} title="Call Lead">
                             <PhoneCall size={16} style={{cursor: 'pointer', color: 'var(--primary)'}} />
                           </a>
@@ -204,7 +207,7 @@ function Dashboard() {
                           </span>
                         )}
                         
-                        {lead.email ? (
+                        {isReal(lead.email) ? (
                           <a 
                             href={`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(lead.email)}&su=${encodeURIComponent('Partnership Inquiry')}&body=${encodeURIComponent(lead.outreach_message || 'Hi, I noticed your business...')}`}
                             target="_blank"
@@ -219,12 +222,12 @@ function Dashboard() {
                           </span>
                         )}
 
-                        {lead.facebook ? (
+                        {isReal(lead.facebook) ? (
                           <a 
                             href={lead.facebook.includes('m.me') ? lead.facebook : `https://m.me/${lead.facebook.split('/').filter(Boolean).pop()}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            onClick={() => copyToClipboard(lead.outreach_message || '', 'Facebook')}
+                            onClick={(e) => { e.stopPropagation(); copyToClipboard(lead.outreach_message || '', 'Facebook'); }}
                             title="Message on FB (Auto-copy Message)"
                           >
                             <Facebook size={16} style={{cursor: 'pointer', color: '#1877F2'}} />
@@ -235,12 +238,12 @@ function Dashboard() {
                           </span>
                         )}
 
-                        {lead.instagram ? (
+                        {isReal(lead.instagram) ? (
                           <a 
                             href={lead.instagram}
                             target="_blank"
                             rel="noopener noreferrer"
-                            onClick={() => copyToClipboard(lead.outreach_message || '', 'Instagram')}
+                            onClick={(e) => { e.stopPropagation(); copyToClipboard(lead.outreach_message || '', 'Instagram'); }}
                             title="Message on Instagram (Auto-copy Message)"
                           >
                             <Instagram size={16} style={{cursor: 'pointer', color: '#E4405F'}} />
@@ -282,7 +285,7 @@ function Dashboard() {
                         <button 
                             className="btn-outline"
                             style={{padding: '0.4rem', borderRadius: '4px', cursor: 'pointer'}}
-                            onClick={() => setSelectedLead(lead)}
+                            onClick={(e) => { e.stopPropagation(); setSelectedLead(lead); }}
                             title="View Full Lead Insights & History"
                         >
                             <History size={16} />
