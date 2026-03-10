@@ -187,6 +187,8 @@ function Dashboard() {
                         onClick={() => setSelectedLead(lead)}
                         title="View History"
                       >
+                        {lead.name}
+                      </div>
                       <div style={{fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
                         {lead.niche} 
                         {lead.has_website === false ? (
