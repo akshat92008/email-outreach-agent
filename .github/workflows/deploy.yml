@@ -6,7 +6,10 @@ on:
     branches:
       - main
     paths:
-      - 'dashboard/dist/**'
+      - 'dashboard/src/**'
+      - 'dashboard/public/**'
+      - 'dashboard/index.html'
+      - 'dashboard/package.json'
       - '.github/workflows/deploy.yml'
 
 jobs:
