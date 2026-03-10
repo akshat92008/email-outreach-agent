@@ -50,6 +50,10 @@ function Dashboard() {
 
     setIsScanning(true);
     try {
+      if (!GITHUB_TOKEN) {
+        throw new Error("Missing GitHub Token. Please set VITE_GITHUB_TOKEN in Netlify settings and REDEPLOY.");
+      }
+
       const response = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/workflows/${WORKFLOW_ID}/dispatches`, {
         method: 'POST',
         headers: {
@@ -71,7 +75,7 @@ function Dashboard() {
       }
     } catch (error) {
       console.error("Error triggering scan:", error);
-      alert("Failed to start scan. Please check your GitHub token and try again.");
+      alert(`⚠️ Error: ${error.message}`);
     } finally {
       setIsScanning(false);
     }
