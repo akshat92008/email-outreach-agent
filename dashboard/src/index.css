@@ -21,7 +21,9 @@
   /* Compatibility Aliases */
   --text: var(--text-main);
   --bg-color: var(--bg-dark);
+  --bg: var(--bg-dark);
   --card-bg: var(--bg-card);
+  --card-hover: var(--bg-card-hover);
 }
 
 * {
