@@ -19,7 +19,9 @@ import {
   History,
   Instagram,
   Facebook,
-  Check
+  Check,
+  MessageCircle,
+  Linkedin
 } from 'lucide-react';
 import Chatbot from './Chatbot';
 
@@ -251,6 +253,38 @@ function Dashboard() {
                         ) : (
                           <span title="Instagram Unavailable">
                             <Instagram size={16} style={{color: 'var(--border)', opacity: 0.5}} />
+                          </span>
+                        )}
+
+                        {isReal(lead.linkedin) ? (
+                          <a 
+                            href={lead.linkedin}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => { e.stopPropagation(); copyToClipboard(lead.outreach_message || '', 'LinkedIn'); }}
+                            title="Connect on LinkedIn (Auto-copy Message)"
+                          >
+                            <Linkedin size={16} style={{cursor: 'pointer', color: '#0A66C2'}} />
+                          </a>
+                        ) : (
+                          <span title="LinkedIn Unavailable">
+                            <Linkedin size={16} style={{color: 'var(--border)', opacity: 0.5}} />
+                          </span>
+                        )}
+
+                        {(isReal(lead.whatsapp) || lead.whatsapp_ready_number) ? (
+                          <a 
+                            href={`https://wa.me/${lead.whatsapp || lead.whatsapp_ready_number}?text=${encodeURIComponent(lead.outreach_message || 'Hi!')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => { e.stopPropagation(); copyToClipboard(lead.outreach_message || '', 'WhatsApp'); }}
+                            title="Message on WhatsApp (Auto-copy Message)"
+                          >
+                            <MessageCircle size={16} style={{cursor: 'pointer', color: '#25D366'}} />
+                          </a>
+                        ) : (
+                          <span title="WhatsApp Unavailable">
+                            <MessageCircle size={16} style={{color: 'var(--border)', opacity: 0.5}} />
                           </span>
                         )}
                       </div>

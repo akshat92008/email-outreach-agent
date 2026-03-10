@@ -64,98 +64,152 @@ async function extractContactInfo(page) {
     return contactData;
 }
 
+/**
+ * Extracts social profiles from Google Knowledge Graph containers.
+ */
+async function extractKnowledgeGraphProfiles(page) {
+    return await page.evaluate(() => {
+        const socialLinks = {};
+        // Knowledge Graph social indicators
+        const profileSelectors = [
+            '[data-attrid="kc:/common/topic:social_media_presence"] a',
+            '.kp-header a[href*="instagram.com"]',
+            '.kp-header a[href*="facebook.com"]',
+            '.kp-header a[href*="linkedin.com"]'
+        ];
+        
+        profileSelectors.forEach(selector => {
+            const links = Array.from(document.querySelectorAll(selector));
+            links.forEach(link => {
+                if (link.href.includes('instagram.com')) socialLinks.instagram = link.href;
+                if (link.href.includes('facebook.com')) socialLinks.facebook = link.href;
+                if (link.href.includes('linkedin.com')) socialLinks.linkedin = link.href;
+            });
+        });
+        return socialLinks;
+    }).catch(() => ({}));
+}
+
+/**
+ * Executes a targeted Google Dorking search for social profiles.
+ */
+async function googleDorkingSearch(page, businessName, city, site) {
+    const query = `${businessName} ${city} site:${site}`;
+    try {
+        await page.goto(`https://www.google.com/search?q=${encodeURIComponent(query)}`, { waitUntil: 'domcontentloaded', timeout: 8000 });
+        const firstLink = await page.$eval('#search a[href*="' + site + '"]', a => a.href).catch(() => null);
+        return firstLink;
+    } catch (e) {
+        return null;
+    }
+}
+
+/**
+ * Scrapes bio and link-in-bio for emails and whatsapp links.
+ */
+async function scrapeSocialBio(page, url) {
+    const data = { email: null, whatsapp: null };
+    try {
+        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 10000 });
+        const bioText = await page.evaluate(() => {
+            const bioElement = document.querySelector('header section div:nth-child(2) span') || // IG bio
+                               document.querySelector('[data-testid="about_section"]') || // FB About
+                               document.body;
+            return bioElement ? bioElement.innerText : '';
+        });
+
+        // Regex for Email & WhatsApp
+        const emailMatch = bioText.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+        if (emailMatch) data.email = emailMatch[0];
+
+        const waMatch = bioText.match(/(wa\.me\/|api\.whatsapp\.com\/send\?phone=)(\d+)/);
+        if (waMatch) data.whatsapp = waMatch[2];
+
+        // Check for linktree or other link-in-bios
+        const externalLink = await page.$eval('a[href*="linktr.ee"], a[href*="l.instagram.com"]', a => a.href).catch(() => null);
+        if (externalLink && !data.email) {
+            await page.goto(externalLink, { waitUntil: 'domcontentloaded', timeout: 8000 });
+            const linktreeText = await page.evaluate(() => document.body.innerText);
+            const secondaryEmail = linktreeText.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+            if (secondaryEmail) data.email = secondaryEmail[0];
+        }
+    } catch (e) {}
+    return data;
+}
+
 async function verifyAndEnrich(lead, targetUrl = null) {
     const browser = await chromium.launch({ headless: true });
     
     try {
         const page = await browser.newPage();
-        
         let websiteToCheck = targetUrl;
 
-        // If no url provided, perform a quick Google Search to find one
-        if (!websiteToCheck) {
-            console.log(`Searching for website: ${lead.name}`);
-            const searchQuery = `${lead.name} ${lead.city} ${lead.country} official website`;
-            try {
-                await page.goto(`https://www.google.com/search?q=${encodeURIComponent(searchQuery)}`, { waitUntil: 'domcontentloaded', timeout: 10000 });
-                websiteToCheck = await page.$eval('#search a', a => a.href).catch(() => null);
-                if (websiteToCheck && websiteToCheck.includes('facebook.com')) {
-                    lead.facebook = websiteToCheck;
-                }
-            } catch (e) {
-                console.log("Google search failed or timed out:", e.message);
-            }
-        }
-
-        if (!websiteToCheck || websiteToCheck.includes('google.com')) {
-            console.log(`No valid website found for: ${lead.name}`);
-            lead.email = null;
-            lead.phone = null;
-            await browser.close();
-            return lead;
-        }
-
-        console.log(`Crawling: ${websiteToCheck}`);
-        
+        // Step 1: Search Google & Extract Knowledge Graph Profiles
+        console.log(`Deep searching for: ${lead.name}`);
+        const searchQuery = `${lead.name} ${lead.city} ${lead.country}`;
         try {
-            await page.goto(websiteToCheck, { waitUntil: 'domcontentloaded', timeout: 10000 });
+            await page.goto(`https://www.google.com/search?q=${encodeURIComponent(searchQuery)}`, { waitUntil: 'domcontentloaded', timeout: 10000 });
+            
+            // Extract from Knowledge Graph
+            const kgProfiles = await extractKnowledgeGraphProfiles(page);
+            if (kgProfiles.instagram) lead.instagram = kgProfiles.instagram;
+            if (kgProfiles.facebook) lead.facebook = kgProfiles.facebook;
+            if (kgProfiles.linkedin) lead.linkedin = kgProfiles.linkedin;
+
+            if (!websiteToCheck) {
+                websiteToCheck = await page.$eval('#search a', a => a.href).catch(() => null);
+            }
         } catch (e) {
-            console.log(`Failed to load ${websiteToCheck}:`, e.message);
-            lead.email = null;
-            lead.phone = null;
-            await browser.close();
-            return lead;
+            console.log("Initial Google deep search error:", e.message);
         }
 
-        // Try extracting from the landing page
-        console.log("Extracting from landing page...");
-        let contactData = await extractContactInfo(page);
+        // Step 2: Google Dorking Fallback for Instagram
+        if (!lead.instagram) {
+            console.log("Instagram missing. Running Google Dorking...");
+            const dorkedIg = await googleDorkingSearch(page, lead.name, lead.city, 'instagram.com');
+            if (dorkedIg) lead.instagram = dorkedIg;
+        }
 
-        // Step 1: Expand Crawl Depth if needed
-        if (!contactData.email || !contactData.phone) {
-            console.log(`Initial page missing data. Expanding crawl depth for ${lead.name}...`);
-            
-            // Find secondary links
-            const targetStrings = ['/contact', '/contact-us', '/about', '/team'];
-            const links = await page.$$eval('a', (anchors, targetStrings) => {
-                return anchors
-                    .filter(a => a.href && targetStrings.some(str => a.href.toLowerCase().includes(str)))
-                    .map(a => a.href);
-            }, targetStrings).catch(() => []);
+        // Step 3: Social Profile Parsing (Bio & Linktree)
+        if (lead.instagram) {
+            console.log("Analyzing Instagram Bio...");
+            const bioData = await scrapeSocialBio(page, lead.instagram);
+            if (bioData.email && !lead.email) lead.email = bioData.email;
+            if (bioData.whatsapp) lead.whatsapp = bioData.whatsapp;
+        }
 
-            const uniqueLinks = [...new Set(links)].slice(0, 2); // Limit to 2 pages
-
-            for (const link of uniqueLinks) {
-                if (contactData.email && contactData.phone) break;
+        // Step 4: Website and Contact Extraction (Fallback)
+        if (websiteToCheck && !websiteToCheck.includes('google.com')) {
+            console.log(`Crawling website: ${websiteToCheck}`);
+            try {
+                await page.goto(websiteToCheck, { waitUntil: 'domcontentloaded', timeout: 10000 });
+                const contactData = await extractContactInfo(page);
                 
-                console.log(`   -> Checking subpage: ${link}`);
-                try {
-                    await page.goto(link, { waitUntil: 'domcontentloaded', timeout: 10000 });
-                    console.log(`   -> Extracting from subpage...`);
-                    const deepData = await extractContactInfo(page);
-                    
-                    if (!contactData.email && deepData.email) contactData.email = deepData.email;
-                    if (!contactData.phone && deepData.phone) contactData.phone = deepData.phone;
-                } catch (e) {
-                    console.log(`   -> Failed to load or extract subpage: ${link}`, e.message);
-                }
+                if (!lead.email) lead.email = contactData.email;
+                if (!lead.phone || lead.phone === 'N/A') lead.phone = contactData.phone;
+                if (!lead.instagram) lead.instagram = contactData.instagram;
+                if (!lead.facebook) lead.facebook = contactData.facebook;
+
+            } catch (e) {
+                console.log(`Website crawl failed: ${websiteToCheck}`);
             }
         }
 
-        lead.email = contactData.email;
-        if (!lead.instagram) lead.instagram = contactData.instagram;
-        if (!lead.facebook) lead.facebook = contactData.facebook;
-        if (!lead.phone || lead.phone === 'N/A') {
-            lead.phone = contactData.phone;
+        // Step 5: WhatsApp Formatting (E.164)
+        if (lead.phone && lead.phone !== 'N/A') {
+            const digits = lead.phone.replace(/\D/g, '');
+            // Simple heuristic for WhatsApp registration prep (formatting only)
+            if (digits.length >= 10) {
+                lead.whatsapp_ready_number = digits;
+            }
         }
 
         if (!lead.history) lead.history = [];
-        lead.history.push({ event: 'Verification Completed', timestamp: new Date().toISOString() });
+        lead.history.push({ event: 'Advanced Intelligence Extraction Completed', timestamp: new Date().toISOString() });
 
     } catch (globalError) {
         console.error("Global verifier error:", globalError);
     } finally {
-        console.log("Closing browser...");
         await browser.close().catch(e => console.error("Error closing browser:", e));
     }
     
