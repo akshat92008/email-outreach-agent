@@ -48,7 +48,7 @@ function isDirectory(url) {
 }
 
 async function searchBusinesses(niche, location) {
-    console.log(`[SCRAPER VERSION 3.0] Target: Website-Less ${niche} in ${location}`);
+    console.log(`[SCRAPER VERSION 3.1] Target: ${niche} in ${location}`);
     const browser = await chromium.launch({
         headless: true,
         args: [
@@ -112,9 +112,11 @@ async function searchBusinesses(niche, location) {
 
             const leadHasRealWebsite = websiteUrl && !isDirectory(websiteUrl);
 
+            // We no longer discard leads with websites. We collect them and let the AI score them later.
             if (leadHasRealWebsite) {
-                console.log(`[SCRAPER] Discarding ${name} (Has existing website: ${websiteUrl})`);
-                continue;
+                console.log(`[SCRAPER] Found ${name} (Has existing website: ${websiteUrl})`);
+            } else {
+                console.log(`[SCRAPER] Found ${name} (NO WEBSITE! HIGH VALUE!)`);
             }
 
             // Extract review data
