@@ -187,9 +187,14 @@ function Dashboard() {
                         onClick={() => setSelectedLead(lead)}
                         title="View History"
                       >
-                        {lead.name}
+                      <div style={{fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
+                        {lead.niche} 
+                        {lead.has_website === false ? (
+                          <span style={{fontSize: '0.65rem', padding: '1px 4px', backgroundColor: '#fee2e2', color: '#dc2626', borderRadius: '4px', fontWeight: 700}}>NO WEBSITE</span>
+                        ) : lead.original_website ? (
+                          <span style={{fontSize: '0.65rem', padding: '1px 4px', backgroundColor: '#fef3c7', color: '#d97706', borderRadius: '4px', fontWeight: 700}}>DIRECTORY ONLY</span>
+                        ) : null}
                       </div>
-                      <div style={{fontSize: '0.75rem', color: 'var(--text-muted)'}}>{lead.niche}</div>
                     </td>
                     <td>
                       <span className={`badge ${priority.class}`}>
