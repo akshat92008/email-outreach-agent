@@ -1,0 +1,10 @@
+[debug] [2026-03-10T16:33:13.052Z] ----------------------------------------------------------------------
+[debug] [2026-03-10T16:33:13.053Z] Command:       /usr/local/bin/node /Users/ashishsingh/.npm/_npx/7750544ccf494d8b/node_modules/.bin/firebase login
+[debug] [2026-03-10T16:33:13.053Z] CLI Version:   15.9.1
+[debug] [2026-03-10T16:33:13.053Z] Platform:      darwin
+[debug] [2026-03-10T16:33:13.053Z] Node Version:  v22.18.0
+[debug] [2026-03-10T16:33:13.054Z] Time:          Tue Mar 10 2026 22:03:13 GMT+0530 (India Standard Time)
+[debug] [2026-03-10T16:33:13.054Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-03-10T16:33:13.054Z] >>> [apiv2][query] GET https://firebase-public.firebaseio.com/cli.json [none]
+[info] i  The Firebase CLI’s MCP server feature can optionally make use of Gemini in Firebase. Learn more about Gemini in Firebase and how it uses your data: https://firebase.google.com/docs/gemini-in-firebase#how-gemini-in-firebase-uses-your-data 

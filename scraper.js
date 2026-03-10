@@ -138,6 +138,21 @@ async function searchBusinesses(niche, location) {
                 return match ? match[0].trim() : 'N/A';
             });
 
+            // Extract secondary directory/social links from the listing
+            const socialLinks = await parent.evaluate(p => {
+                const links = Array.from(p.querySelectorAll('a'));
+                const getHref = (domain) => {
+                    const el = links.find(l => l.href && l.href.toLowerCase().includes(domain));
+                    return el ? el.href : null;
+                };
+                return {
+                    linkedin: getHref('linkedin.com/company/'),
+                    facebook: getHref('facebook.com/'),
+                    instagram: getHref('instagram.com/'),
+                    yelp: getHref('yelp.com/biz/')
+                };
+            });
+
             leads.push({
                 name,
                 niche,
@@ -147,10 +162,11 @@ async function searchBusinesses(niche, location) {
                 city,
                 country: location.split(',').pop().trim(),
                 email: null,
-                facebook: null,
-                instagram: null,
+                facebook: socialLinks.facebook,
+                instagram: socialLinks.instagram,
                 whatsapp: null,
-                linkedin: null,
+                linkedin: socialLinks.linkedin,
+                yelp_link: socialLinks.yelp,
                 has_website: !!websiteUrl,
                 original_website: websiteUrl,
                 status: 'new',

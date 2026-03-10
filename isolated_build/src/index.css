@@ -33,9 +33,7 @@ body {
   margin: 0 auto;
 }
 
-h1,
-h2,
-h3 {
+h1, h2, h3 {
   font-weight: 700;
   margin-bottom: 1rem;
 }
@@ -155,14 +153,7 @@ tr:hover {
   background: rgba(255, 255, 255, 0.05);
 }
 
-.active-view {
-  background-color: rgba(255, 255, 255, 0.1) !important;
-  color: var(--primary) !important;
-  border-color: var(--primary) !important;
-}
-
-input,
-select {
+input, select {
   background: var(--bg-card);
   border: 1px solid var(--border);
   color: var(--text-main);
@@ -176,7 +167,6 @@ select {
   grid-template-columns: 1fr 1fr;
   gap: 2rem;
 }
-
 .badge-priority-high {
   background: rgba(239, 68, 68, 0.15);
   color: #fca5a5;
@@ -261,11 +251,11 @@ select {
   border-radius: 50%;
 }
 
-input:checked+.slider {
+input:checked + .slider {
   background-color: var(--success);
 }
 
-input:checked+.slider:before {
+input:checked + .slider:before {
   transform: translateX(20px);
 }
 

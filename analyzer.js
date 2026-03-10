@@ -1,72 +1,99 @@
 const { chromium } = require('playwright-extra');
 
 async function analyzeWebsite(url) {
-    if (!url) return { score: 0, report: "No website provided." };
+    if (!url) return null;
 
-    const browser = await chromium.launch({ headless: true });
+    const analysis = {
+        url,
+        loadTimeMs: 0,
+        hasMobileViewport: false,
+        hasSSL: url.startsWith('https'),
+        hasBookingSystem: false,
+        hasContactForm: false,
+        seoScore: 0,
+        qualityScore: 100,
+        issues: []
+    };
+
+    let browser;
     try {
-        const page = await browser.newPage();
-
-        // 1. SSL & Security Check
-        const isSsl = url.startsWith('https');
+        browser = await chromium.launch({ headless: true });
+        const context = await browser.newContext({
+            viewport: { width: 375, height: 812 }, // Mobile viewport emulation
+            userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X)'
+        });
+        const page = await context.newPage();
 
         const startTime = Date.now();
-        await page.goto(url, { waitUntil: 'load', timeout: 20000 });
-        const loadTime = Date.now() - startTime;
 
-        // 2. Page Speed Score (Mock/Simple logic: < 3s is good)
-        let speedScore = loadTime < 3000 ? 100 : Math.max(0, 100 - (loadTime - 3000) / 100);
+        try {
+            await page.goto(url, { waitUntil: 'load', timeout: 15000 });
+        } catch (e) {
+            analysis.issues.push("Website timeout or severe load error.");
+            analysis.qualityScore -= 40;
+            return analysis;
+        }
 
-        // 3. Mobile Responsiveness (Check if viewport scaling exists)
-        const hasViewport = await page.evaluate(() => {
-            const viewport = document.querySelector('meta[name="viewport"]');
-            return !!viewport;
-        });
+        analysis.loadTimeMs = Date.now() - startTime;
 
-        // 4. SEO Basics
-        const seoData = await page.evaluate(() => {
-            return {
-                title: document.title,
-                hasDescription: !!document.querySelector('meta[name="description"]'),
-                h1Count: document.querySelectorAll('h1').length
-            };
-        });
+        // 1. Check Load Speed
+        if (analysis.loadTimeMs > 6000) {
+            analysis.issues.push("Extremely slow load time (> 6s)");
+            analysis.qualityScore -= 30;
+        } else if (analysis.loadTimeMs > 3000) {
+            analysis.issues.push("Slow load time (> 3s)");
+            analysis.qualityScore -= 15;
+        }
 
-        // 5. Modern Features Check
-        const features = await page.evaluate(() => {
-            const text = document.body.innerText.toLowerCase();
-            return {
-                hasContactForm: !!document.querySelector('form'),
-                hasBooking: text.includes('book') || text.includes('schedule') || text.includes('appointment'),
-                isOutdated: text.includes('© 2020') || text.includes('© 2019') || text.includes('© 2018')
-            };
-        });
+        // 2. Check Mobile Responsiveness (Meta Viewport)
+        const viewportMeta = await page.$('meta[name="viewport"]');
+        if (viewportMeta) {
+            analysis.hasMobileViewport = true;
+        } else {
+            analysis.issues.push("Not optimized for mobile (Missing Viewport)");
+            analysis.qualityScore -= 20;
+        }
 
-        // Calculate Overall Quality Score (0-100)
-        let qualityScore = 0;
-        if (isSsl) qualityScore += 10;
-        if (hasViewport) qualityScore += 20;
-        if (seoData.title && seoData.hasDescription) qualityScore += 20;
-        if (features.hasContactForm) qualityScore += 10;
-        if (speedScore > 80) qualityScore += 20;
-        if (!features.isOutdated) qualityScore += 20;
+        // 3. Check SEO Basics
+        const title = await page.title();
+        const description = await page.$('meta[name="description"]');
+        if (title && title.length > 5) analysis.seoScore += 50;
+        if (description) analysis.seoScore += 50;
 
-        const report = {
-            url,
-            isSsl,
-            loadTimeMs: loadTime,
-            mobileReady: hasViewport,
-            seo: seoData,
-            features,
-            qualityScore: Math.round(qualityScore)
-        };
+        if (analysis.seoScore < 100) {
+            analysis.issues.push("Poor basic SEO (Missing Title/Description)");
+            analysis.qualityScore -= 10;
+        }
 
-        return report;
+        // 4. Feature Detection (Forms & Booking)
+        const pageContent = await page.content();
+        const html = pageContent.toLowerCase();
+
+        if (html.includes('calendly.com') || html.includes('acuityscheduling') || html.includes('book online') || html.includes('schedule appointment')) {
+            analysis.hasBookingSystem = true;
+        } else {
+            analysis.issues.push("Missing direct online booking system");
+            analysis.qualityScore -= 10;
+        }
+
+        const forms = await page.$$('form');
+        if (forms.length > 0) analysis.hasContactForm = true;
+
+        if (!analysis.hasSSL) {
+            analysis.issues.push("Unsecured connection (Missing SSL/HTTPS)");
+            analysis.qualityScore -= 20;
+        }
+
+        // Floor the score
+        analysis.qualityScore = Math.max(0, analysis.qualityScore);
+
+        return analysis;
+
     } catch (e) {
-        console.error(`Analysis failed for ${url}:`, e.message);
-        return { score: 0, error: e.message };
+        console.error(`[ANALYZER] Error scanning ${url}:`, e.message);
+        return analysis;
     } finally {
-        await browser.close();
+        if (browser) await browser.close();
     }
 }
 

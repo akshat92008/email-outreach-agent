@@ -2,29 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { collection, onSnapshot, query, orderBy, doc, updateDoc, arrayUnion, deleteDoc } from 'firebase/firestore';
 import db from './firebase';
 import {
-  Users,
-  Send,
-  Flame,
-  PhoneCall,
-  ExternalLink,
-  Mail,
-  Download,
-  BarChart3,
-  Search,
-  TrendingUp,
-  Clock,
-  ArrowUpRight,
-  TrendingDown,
-  X,
-  History,
-  Instagram,
-  Facebook,
-  Check,
-  MessageCircle,
-  Linkedin,
-  Trash2
+  Users, Send, Flame, PhoneCall, ExternalLink, Mail, Download, BarChart3, Search,
+  TrendingUp, Clock, ArrowUpRight, TrendingDown, X, History, Instagram, Facebook,
+  Check, MessageCircle, Linkedin, Trash2, LayoutGrid, List, Activity
 } from 'lucide-react';
 import Chatbot from './Chatbot';
+import PipelineBoard from './PipelineBoard';
+import AnalyticsBoard from './AnalyticsBoard';
 
 function Dashboard() {
   const [leads, setLeads] = useState([]);
@@ -36,6 +20,8 @@ function Dashboard() {
   const [newNiche, setNewNiche] = useState('');
   const [newLocation, setNewLocation] = useState('');
   const [isScanning, setIsScanning] = useState(false);
+  const [viewMode, setViewMode] = useState('pipeline'); // 'pipeline' or 'list'
+  const [activeFilter, setActiveFilter] = useState('all');
 
   const startCloudScan = async () => {
     if (!newNiche || !newLocation) {
@@ -133,8 +119,13 @@ function Dashboard() {
   const filteredLeads = leads.filter(l => {
     const matchesSearch = (l.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (l.city || '').toLowerCase().includes(searchTerm.toLowerCase());
-    const isHidden = hideContacted && l.contacted_status !== 'pending';
-    return matchesSearch && !isHidden;
+    const isHidden = hideContacted && l.status !== 'new' && l.status !== 'pending';
+
+    let matchesFilter = true;
+    if (activeFilter === 'high_value') matchesFilter = l.score >= 75;
+    if (activeFilter === 'no_website') matchesFilter = !l.has_website || l.has_website === 'No';
+
+    return matchesSearch && !isHidden && matchesFilter;
   });
 
   const contactedCount = leads.filter(l => l.contacted_status !== 'pending').length;
@@ -160,9 +151,10 @@ function Dashboard() {
     try {
       const leadRef = doc(db, 'leads', id);
       await updateDoc(leadRef, {
-        contacted_status: newStatus,
+        status: newStatus,
+        contacted_status: newStatus, // Sync old schema
         history: arrayUnion({
-          event: `Lead status updated to ${newStatus}`,
+          event: `Moved to ${newStatus.toUpperCase()}`,
           timestamp: new Date().toISOString()
         })
       });
@@ -172,9 +164,17 @@ function Dashboard() {
   };
 
   const exportLeads = () => {
+    // Escape quotes to prevent CSV breaking on commas inside outreach drafts
+    const escapeCsv = (str) => {
+      if (!str) return '""';
+      return `"${String(str).replace(/"/g, '""')}"`;
+    };
+
     const csvContent = "data:text/csv;charset=utf-8,"
-      + ["Name,Email,Phone,Score,Status"].join(",") + "\n"
-      + leads.map(l => `${l.name},${l.email},${l.phone},${l.score},${l.contacted_status}`).join("\n");
+      + ["Name", "Email", "Phone", "Score", "Stage", "Niche", "City", "Email Draft"].join(",") + "\n"
+      + leads.map(l =>
+        `${escapeCsv(l.name)},${escapeCsv(l.email)},${escapeCsv(l.phone)},${l.score || 0},${escapeCsv(l.status || 'new')},${escapeCsv(l.niche)},${escapeCsv(l.city)},${escapeCsv(l.outreach_email || l.outreach_message)}`
+      ).join("\n");
 
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
@@ -224,6 +224,25 @@ function Dashboard() {
         </div>
       </div>
 
+      {/* Quick Filters */}
+      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+        <button
+          onClick={() => setActiveFilter('all')}
+          style={{ padding: '0.5rem 1rem', borderRadius: '20px', border: '1px solid var(--border)', background: activeFilter === 'all' ? 'var(--primary)' : 'transparent', color: activeFilter === 'all' ? 'white' : 'var(--text)', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600, transition: '0.2s' }}>
+          All Leads
+        </button>
+        <button
+          onClick={() => setActiveFilter('high_value')}
+          style={{ padding: '0.5rem 1rem', borderRadius: '20px', border: '1px solid var(--border)', background: activeFilter === 'high_value' ? 'var(--primary)' : 'transparent', color: activeFilter === 'high_value' ? 'white' : 'var(--text)', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600, transition: '0.2s', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+          <Flame size={14} color={activeFilter === 'high_value' ? 'white' : '#f87171'} /> High Value (&gt;75)
+        </button>
+        <button
+          onClick={() => setActiveFilter('no_website')}
+          style={{ padding: '0.5rem 1rem', borderRadius: '20px', border: '1px solid var(--border)', background: activeFilter === 'no_website' ? 'var(--primary)' : 'transparent', color: activeFilter === 'no_website' ? 'white' : 'var(--text)', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600, transition: '0.2s', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+          <ExternalLink size={14} color={activeFilter === 'no_website' ? 'white' : '#60a5fa'} /> No Website
+        </button>
+      </div>
+
       <div className="card" style={{ marginBottom: '2rem', padding: '1.5rem', background: 'linear-gradient(135deg, #eff6ff 0%, #ffffff 100%)', border: '1px solid #bfdbfe' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
           <div>
@@ -265,228 +284,231 @@ function Dashboard() {
         </div>
       </div>
 
-      <div className="analytics-grid">
-        <div className="card stat-card">
-          <span className="label">Total Pipe</span>
-          <span className="value">{stats.total}</span>
-          <BarChart3 className="icon" size={24} style={{ color: 'var(--primary)' }} />
-        </div>
-        <div className="card stat-card">
-          <span className="label">High Value</span>
-          <span className="value">{stats.highValue}</span>
-          <Flame className="icon" size={24} style={{ color: '#f87171' }} />
-        </div>
-        <div className="card stat-card">
-          <span className="label">No Website</span>
-          <span className="value">{stats.noWebsite}</span>
-          <ExternalLink className="icon" size={24} style={{ color: '#60a5fa' }} />
-        </div>
-        <div className="card stat-card">
-          <span className="label">Conv. Rate</span>
-          <span className="value">{stats.conversion}%</span>
-          <TrendingUp className="icon" size={24} style={{ color: 'var(--success)' }} />
-        </div>
-      </div>
+      <AnalyticsBoard leads={leads} />
 
       <div className="card">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-          <h2>Active Prospects</h2>
+          <h2>CRM Pipeline</h2>
+
+          <div style={{ display: 'flex', gap: '0.5rem', backgroundColor: 'var(--bg-color)', padding: '0.25rem', borderRadius: '8px' }}>
+            <button
+              className={`btn-outline ${viewMode === 'pipeline' ? 'active-view' : ''}`}
+              onClick={() => setViewMode('pipeline')}
+              style={{ border: 'none', backgroundColor: viewMode === 'pipeline' ? 'var(--card-bg)' : 'transparent', boxShadow: viewMode === 'pipeline' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}>
+              <LayoutGrid size={18} /> Board
+            </button>
+            <button
+              className={`btn-outline ${viewMode === 'list' ? 'active-view' : ''}`}
+              onClick={() => setViewMode('list')}
+              style={{ border: 'none', backgroundColor: viewMode === 'list' ? 'var(--card-bg)' : 'transparent', boxShadow: viewMode === 'list' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}>
+              <List size={18} /> List
+            </button>
+          </div>
         </div>
-        <div style={{ overflowX: 'auto' }}>
-          <table>
-            <thead>
-              <tr>
-                <th>Business Name</th>
-                <th>AI Score</th>
-                <th>Location</th>
-                <th>Outreach</th>
-                <th>Pipeline Stage</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredLeads.map(lead => {
-                const priority = getPriority(lead.score || 0);
-                // Helper to check if a value is real or a placeholder
-                const isReal = (val) => val && val !== 'Pending Verification' && val !== 'N/A';
 
-                return (
-                  <tr key={lead.id}>
-                    <td>
-                      <div
-                        style={{ fontWeight: 600, cursor: 'pointer', color: 'var(--primary)' }}
-                        onClick={() => setSelectedLead(lead)}
-                        title="View History"
-                      >
-                        {lead.name}
-                      </div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        {lead.niche}
-                        {lead.has_website === false ? (
-                          <span style={{ fontSize: '0.65rem', padding: '1px 4px', backgroundColor: '#fee2e2', color: '#dc2626', borderRadius: '4px', fontWeight: 700 }}>NO WEBSITE</span>
-                        ) : lead.original_website ? (
-                          <span style={{ fontSize: '0.65rem', padding: '1px 4px', backgroundColor: '#fef3c7', color: '#d97706', borderRadius: '4px', fontWeight: 700 }}>DIRECTORY ONLY</span>
-                        ) : null}
-                      </div>
-                    </td>
-                    <td>
-                      <span className={`badge ${priority.class}`}>
-                        {priority.label}
-                      </span>
-                    </td>
-                    <td>{lead.city}, {lead.country}</td>
-                    <td>
-                      <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-                        {isReal(lead.phone) ? (
-                          <a href={`tel:${lead.phone.replace(/[^0-9+]/g, '')}`} title="Call Lead">
-                            <PhoneCall size={16} style={{ cursor: 'pointer', color: 'var(--primary)' }} />
-                          </a>
-                        ) : (
-                          <span title="Phone Unavailable">
-                            <PhoneCall size={16} style={{ color: 'var(--border)', opacity: 0.5 }} />
-                          </span>
-                        )}
+        {viewMode === 'pipeline' ? (
+          <PipelineBoard
+            leads={filteredLeads}
+            updateLeadStatus={updateLeadStatus}
+            setSelectedLead={setSelectedLead}
+          />
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table>
+              <thead>
+                <tr>
+                  <th>Business Name</th>
+                  <th>AI Score</th>
+                  <th>Location</th>
+                  <th>Outreach</th>
+                  <th>Pipeline Stage</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredLeads.map(lead => {
+                  const priority = getPriority(lead.score || 0);
+                  // Helper to check if a value is real or a placeholder
+                  const isReal = (val) => val && val !== 'Pending Verification' && val !== 'N/A';
 
-                        {isReal(lead.email) ? (
-                          <a
-                            href={`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(lead.email)}&su=${encodeURIComponent('Partnership Inquiry')}&body=${encodeURIComponent(lead.outreach_message || 'Hi, I noticed your business...')}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            title="Email Lead via Gmail"
-                          >
-                            <Mail size={16} style={{ cursor: 'pointer', color: 'var(--primary)' }} />
-                          </a>
-                        ) : (
-                          <span title="Email Unavailable">
-                            <Mail size={16} style={{ color: 'var(--border)', opacity: 0.5 }} />
-                          </span>
-                        )}
-
-                        {isReal(lead.facebook) ? (
-                          <a
-                            href={lead.facebook.includes('m.me') ? lead.facebook : `https://m.me/${lead.facebook.split('/').filter(Boolean).pop()}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => { e.stopPropagation(); copyToClipboard(lead.outreach_message || '', 'Facebook'); }}
-                            title="Message on FB (Auto-copy Message)"
-                          >
-                            <Facebook size={16} style={{ cursor: 'pointer', color: '#1877F2' }} />
-                          </a>
-                        ) : (
-                          <span title="Facebook Unavailable">
-                            <Facebook size={16} style={{ color: 'var(--border)', opacity: 0.5 }} />
-                          </span>
-                        )}
-
-                        {isReal(lead.instagram) ? (
-                          <a
-                            href={lead.instagram}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => { e.stopPropagation(); copyToClipboard(lead.outreach_message || '', 'Instagram'); }}
-                            title="Message on Instagram (Auto-copy Message)"
-                          >
-                            <Instagram size={16} style={{ cursor: 'pointer', color: '#E4405F' }} />
-                          </a>
-                        ) : (
-                          <span title="Instagram Unavailable">
-                            <Instagram size={16} style={{ color: 'var(--border)', opacity: 0.5 }} />
-                          </span>
-                        )}
-
-                        {isReal(lead.linkedin) ? (
-                          <a
-                            href={lead.linkedin}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => { e.stopPropagation(); copyToClipboard(lead.outreach_message || '', 'LinkedIn'); }}
-                            title="Connect on LinkedIn (Auto-copy Message)"
-                          >
-                            <Linkedin size={16} style={{ cursor: 'pointer', color: '#0A66C2' }} />
-                          </a>
-                        ) : (
-                          <span title="LinkedIn Unavailable">
-                            <Linkedin size={16} style={{ color: 'var(--border)', opacity: 0.5 }} />
-                          </span>
-                        )}
-
-                        {(isReal(lead.whatsapp) || lead.whatsapp_ready_number) ? (
-                          <a
-                            href={`https://wa.me/${lead.whatsapp || lead.whatsapp_ready_number}?text=${encodeURIComponent(lead.outreach_message || 'Hi!')}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => { e.stopPropagation(); copyToClipboard(lead.outreach_message || '', 'WhatsApp'); }}
-                            title="Message on WhatsApp (Auto-copy Message)"
-                          >
-                            <MessageCircle size={16} style={{ cursor: 'pointer', color: '#25D366' }} />
-                          </a>
-                        ) : (
-                          <span title="WhatsApp Unavailable">
-                            <MessageCircle size={16} style={{ color: 'var(--border)', opacity: 0.5 }} />
-                          </span>
-                        )}
-                      </div>
-                      {copyStatus && (
-                        <div style={{ position: 'fixed', bottom: '20px', left: '50%', transform: 'translateX(-50%)', backgroundColor: 'var(--success)', color: 'white', padding: '0.5rem 1rem', borderRadius: '8px', zIndex: 1001, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <Check size={16} /> Outreach message copied for {copyStatus}!
-                        </div>
-                      )}
-                    </td>
-                    <td>
-                      <select
-                        value={lead.contacted_status}
-                        onChange={(e) => updateLeadStatus(lead.id, e.target.value)}
-                        className="pipeline-select"
-                        style={{ padding: '0.3rem', borderRadius: '4px', border: '1px solid var(--border)' }}
-                      >
-                        <option value="pending">New Lead</option>
-                        <option value="qualified">Qualified</option>
-                        <option value="contacted">Contacted</option>
-                        <option value="replied">Replied</option>
-                        <option value="demo_sent">Demo Sent</option>
-                        <option value="closed">Closed</option>
-                      </select>
-                    </td>
-                    <td>
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <a
-                          href={`https://www.google.com/search?q=${encodeURIComponent(lead.name + ' ' + (lead.city || ''))}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="btn-outline"
-                          style={{ padding: '0.4rem', borderRadius: '4px', display: 'flex', alignItems: 'center' }}
-                          title="Search Business on Web"
+                  return (
+                    <tr key={lead.id}>
+                      <td>
+                        <div
+                          style={{ fontWeight: 600, cursor: 'pointer', color: 'var(--primary)' }}
+                          onClick={() => setSelectedLead(lead)}
+                          title="View History"
                         >
-                          <Search size={16} />
-                        </a>
-                        {lead.demo_url && (
+                          {lead.name}
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          {lead.niche}
+                          {lead.has_website === false ? (
+                            <span style={{ fontSize: '0.65rem', padding: '1px 4px', backgroundColor: '#fee2e2', color: '#dc2626', borderRadius: '4px', fontWeight: 700 }}>NO WEBSITE</span>
+                          ) : lead.original_website ? (
+                            <span style={{ fontSize: '0.65rem', padding: '1px 4px', backgroundColor: '#fef3c7', color: '#d97706', borderRadius: '4px', fontWeight: 700 }}>DIRECTORY ONLY</span>
+                          ) : null}
+                        </div>
+                      </td>
+                      <td>
+                        <span className={`badge ${priority.class}`}>
+                          {priority.label}
+                        </span>
+                      </td>
+                      <td>{lead.city}, {lead.country}</td>
+                      <td>
+                        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                          {isReal(lead.phone) ? (
+                            <a href={`tel:${lead.phone.replace(/[^0-9+]/g, '')}`} title="Call Lead">
+                              <PhoneCall size={16} style={{ cursor: 'pointer', color: 'var(--primary)' }} />
+                            </a>
+                          ) : (
+                            <span title="Phone Unavailable">
+                              <PhoneCall size={16} style={{ color: 'var(--border)', opacity: 0.5 }} />
+                            </span>
+                          )}
+
+                          {isReal(lead.email) ? (
+                            <a
+                              href={`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(lead.email)}&su=${encodeURIComponent('Partnership Inquiry')}&body=${encodeURIComponent(lead.outreach_message || 'Hi, I noticed your business...')}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              title="Email Lead via Gmail"
+                            >
+                              <Mail size={16} style={{ cursor: 'pointer', color: 'var(--primary)' }} />
+                            </a>
+                          ) : (
+                            <span title="Email Unavailable">
+                              <Mail size={16} style={{ color: 'var(--border)', opacity: 0.5 }} />
+                            </span>
+                          )}
+
+                          {isReal(lead.facebook) ? (
+                            <a
+                              href={lead.facebook.includes('m.me') ? lead.facebook : `https://m.me/${lead.facebook.split('/').filter(Boolean).pop()}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => { e.stopPropagation(); copyToClipboard(lead.outreach_message || '', 'Facebook'); }}
+                              title="Message on FB (Auto-copy Message)"
+                            >
+                              <Facebook size={16} style={{ cursor: 'pointer', color: '#1877F2' }} />
+                            </a>
+                          ) : (
+                            <span title="Facebook Unavailable">
+                              <Facebook size={16} style={{ color: 'var(--border)', opacity: 0.5 }} />
+                            </span>
+                          )}
+
+                          {isReal(lead.instagram) ? (
+                            <a
+                              href={lead.instagram}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => { e.stopPropagation(); copyToClipboard(lead.outreach_message || '', 'Instagram'); }}
+                              title="Message on Instagram (Auto-copy Message)"
+                            >
+                              <Instagram size={16} style={{ cursor: 'pointer', color: '#E4405F' }} />
+                            </a>
+                          ) : (
+                            <span title="Instagram Unavailable">
+                              <Instagram size={16} style={{ color: 'var(--border)', opacity: 0.5 }} />
+                            </span>
+                          )}
+
+                          {isReal(lead.linkedin) ? (
+                            <a
+                              href={lead.linkedin}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => { e.stopPropagation(); copyToClipboard(lead.outreach_message || '', 'LinkedIn'); }}
+                              title="Connect on LinkedIn (Auto-copy Message)"
+                            >
+                              <Linkedin size={16} style={{ cursor: 'pointer', color: '#0A66C2' }} />
+                            </a>
+                          ) : (
+                            <span title="LinkedIn Unavailable">
+                              <Linkedin size={16} style={{ color: 'var(--border)', opacity: 0.5 }} />
+                            </span>
+                          )}
+
+                          {(isReal(lead.whatsapp) || lead.whatsapp_ready_number) ? (
+                            <a
+                              href={`https://wa.me/${lead.whatsapp || lead.whatsapp_ready_number}?text=${encodeURIComponent(lead.outreach_message || 'Hi!')}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => { e.stopPropagation(); copyToClipboard(lead.outreach_message || '', 'WhatsApp'); }}
+                              title="Message on WhatsApp (Auto-copy Message)"
+                            >
+                              <MessageCircle size={16} style={{ cursor: 'pointer', color: '#25D366' }} />
+                            </a>
+                          ) : (
+                            <span title="WhatsApp Unavailable">
+                              <MessageCircle size={16} style={{ color: 'var(--border)', opacity: 0.5 }} />
+                            </span>
+                          )}
+                        </div>
+                        {copyStatus && (
+                          <div style={{ position: 'fixed', bottom: '20px', left: '50%', transform: 'translateX(-50%)', backgroundColor: 'var(--success)', color: 'white', padding: '0.5rem 1rem', borderRadius: '8px', zIndex: 1001, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <Check size={16} /> Outreach message copied for {copyStatus}!
+                          </div>
+                        )}
+                      </td>
+                      <td>
+                        <select
+                          value={lead.contacted_status}
+                          onChange={(e) => updateLeadStatus(lead.id, e.target.value)}
+                          className="pipeline-select"
+                          style={{ padding: '0.3rem', borderRadius: '4px', border: '1px solid var(--border)' }}
+                        >
+                          <option value="pending">New Lead</option>
+                          <option value="qualified">Qualified</option>
+                          <option value="contacted">Contacted</option>
+                          <option value="replied">Replied</option>
+                          <option value="demo_sent">Demo Sent</option>
+                          <option value="closed">Closed</option>
+                        </select>
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
                           <a
-                            href={lead.demo_url}
+                            href={`https://www.google.com/search?q=${encodeURIComponent(lead.name + ' ' + (lead.city || ''))}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="btn-outline"
-                            style={{ padding: '0.4rem', borderRadius: '4px', display: 'flex', alignItems: 'center', borderColor: 'var(--accent)', color: 'var(--accent)' }}
-                            title="View Demo Website"
+                            style={{ padding: '0.4rem', borderRadius: '4px', display: 'flex', alignItems: 'center' }}
+                            title="Search Business on Web"
                           >
-                            <ExternalLink size={16} />
+                            <Search size={16} />
                           </a>
-                        )}
-                        <button
-                          className="btn-outline"
-                          style={{ padding: '0.4rem', borderRadius: '4px', cursor: 'pointer', borderColor: '#fca5a5', color: '#ef4444' }}
-                          onClick={(e) => { e.stopPropagation(); deleteLead(lead.id, lead.name); }}
-                          title="Delete Lead Permanently"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                          {lead.demo_url && (
+                            <a
+                              href={lead.demo_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="btn-outline"
+                              style={{ padding: '0.4rem', borderRadius: '4px', display: 'flex', alignItems: 'center', borderColor: 'var(--accent)', color: 'var(--accent)' }}
+                              title="View Demo Website"
+                            >
+                              <ExternalLink size={16} />
+                            </a>
+                          )}
+                          <button
+                            className="btn-outline"
+                            style={{ padding: '0.4rem', borderRadius: '4px', cursor: 'pointer', borderColor: '#fca5a5', color: '#ef4444' }}
+                            onClick={(e) => { e.stopPropagation(); deleteLead(lead.id, lead.name); }}
+                            title="Delete Lead Permanently"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Lead History Modal */}

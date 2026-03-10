@@ -1,21 +1,20 @@
-name: Lead Generation Scraper
+name: AI Lead Generation Engine
 
 on:
   schedule:
-    - cron: '0 0 * * *'
+    # Run automatically every day at 1:00 AM UTC
+    - cron: '0 1 * * *'
   workflow_dispatch:
     inputs:
       niche:
         description: 'Business Niche (e.g., Dentist)'
-        required: true
-        default: 'Dentist'
+        required: false
       location:
         description: 'Location (e.g., California)'
-        required: true
-        default: 'California'
+        required: false
 
 jobs:
-  scrape:
+  scrape_and_outreach:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -34,11 +33,38 @@ jobs:
 
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps chromium
+        
+      - name: Determine Daily Target
+        id: target
+        run: |
+          # Define high-value targets for autonomous rotation
+          NICHES=("Dentist" "Lawyer" "Roofing Contractor" "HVAC" "Plumber" "Real Estate Agency" "Med Spa")
+          CITIES=("Austin, TX" "Miami, FL" "Denver, CO" "Seattle, WA" "Atlanta, GA" "Phoenix, AZ" "Chicago, IL")
+          
+          # If manual input provided, use it. Otherwise, calculate daily rotation.
+          if [ "${{ github.event.inputs.niche }}" != "" ]; then
+            SELECTED_NICHE="${{ github.event.inputs.niche }}"
+            SELECTED_CITY="${{ github.event.inputs.location }}"
+          else
+            # Get the day of the year (1-365)
+            DAY_OF_YEAR=$(date +%j)
+            
+            # Use modulo math to rotate through combinations
+            NICHE_INDEX=$(( 10#${DAY_OF_YEAR} % ${#NICHES[@]} ))
+            CITY_INDEX=$(( (10#${DAY_OF_YEAR} / ${#NICHES[@]}) % ${#CITIES[@]} ))
+            
+            SELECTED_NICHE="${NICHES[$NICHE_INDEX]}"
+            SELECTED_CITY="${CITIES[$CITY_INDEX]}"
+          fi
+          
+          echo "SELECTED_NICHE=$SELECTED_NICHE" >> $GITHUB_ENV
+          echo "SELECTED_CITY=$SELECTED_CITY" >> $GITHUB_ENV
+          echo "🎯 Targeting today: $SELECTED_NICHE in $SELECTED_CITY"
 
-      - name: Run Scraper
+      - name: Execute Autonomous Agent
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          NICHE: ${{ github.event.inputs.niche }}
-          LOCATION: ${{ github.event.inputs.location }}
-          PORT: 3001
+          NICHE: ${{ env.SELECTED_NICHE }}
+          LOCATION: ${{ env.SELECTED_CITY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: xvfb-run --auto-servernum -- node index.js

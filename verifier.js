@@ -1,4 +1,5 @@
 const { chromium } = require('playwright-extra');
+const { analyzeWebsite } = require('./analyzer');
 
 // Regex Patterns as specified by the user
 const EMAIL_REGEX = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
@@ -31,7 +32,7 @@ async function extractContactInfo(page) {
 
         const instaLinks = await page.$$eval('a[href*="instagram.com"]', links => links.map(a => a.href));
         const fbLinks = await page.$$eval('a[href*="facebook.com"]', links => links.map(a => a.href));
-        
+
         contactData.email = cleanData(emails);
         contactData.phone = cleanData(phones);
         contactData.instagram = cleanData(instaLinks);
@@ -77,7 +78,7 @@ async function extractKnowledgeGraphProfiles(page) {
             '.kp-header a[href*="facebook.com"]',
             '.kp-header a[href*="linkedin.com"]'
         ];
-        
+
         profileSelectors.forEach(selector => {
             const links = Array.from(document.querySelectorAll(selector));
             links.forEach(link => {
@@ -106,7 +107,7 @@ async function googleDorkingSearch(page, businessName, city, site) {
         }
 
         await page.goto(`https://www.google.com/search?q=${encodeURIComponent(query)}`, { waitUntil: 'domcontentloaded', timeout: 8000 });
-        
+
         // Target specifically the first organic result link for the requested site
         const firstLink = await page.evaluate((site) => {
             const links = Array.from(document.querySelectorAll('#search a'));
@@ -129,7 +130,7 @@ async function scrapeSocialBio(page, url) {
     try {
         console.log(`[BIO MINING] Checking: ${url}`);
         await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 12000 });
-        
+
         const bioText = await page.evaluate(() => {
             // General selectors for bio text across socials
             const selectors = [
@@ -138,16 +139,16 @@ async function scrapeSocialBio(page, url) {
                 '.profile-bio', // Generic
                 'meta[name="description"]' // Meta fallback
             ];
-            
+
             for (const sel of selectors) {
                 const el = document.querySelector(sel);
                 if (el && el.innerText) return el.innerText;
             }
-            
+
             // Meta description check
             const meta = document.querySelector('meta[name="description"]');
             if (meta) return meta.getAttribute('content');
-            
+
             return document.body.innerText;
         });
 
@@ -179,7 +180,7 @@ async function scrapeSocialBio(page, url) {
             const linktreeText = await page.evaluate(() => document.body.innerText);
             const secondaryEmail = linktreeText.match(emailRegex);
             if (secondaryEmail) data.email = secondaryEmail[0];
-            
+
             const secondaryWa = linktreeText.match(waLinkRegex);
             if (secondaryWa && !data.whatsapp) data.whatsapp = secondaryWa[2];
         }
@@ -191,7 +192,7 @@ async function scrapeSocialBio(page, url) {
 
 async function verifyAndEnrich(lead, targetUrl = null) {
     const browser = await chromium.launch({ headless: true });
-    
+
     try {
         const page = await browser.newPage();
         let websiteToCheck = targetUrl;
@@ -201,7 +202,7 @@ async function verifyAndEnrich(lead, targetUrl = null) {
         const searchQuery = `${lead.name} ${lead.city} ${lead.country}`;
         try {
             await page.goto(`https://www.google.com/search?q=${encodeURIComponent(searchQuery)}`, { waitUntil: 'domcontentloaded', timeout: 10000 });
-            
+
             // Extract from Knowledge Graph
             const kgProfiles = await extractKnowledgeGraphProfiles(page);
             if (kgProfiles.instagram) lead.instagram = kgProfiles.instagram;
@@ -248,11 +249,18 @@ async function verifyAndEnrich(lead, targetUrl = null) {
             try {
                 await page.goto(websiteToCheck, { waitUntil: 'domcontentloaded', timeout: 10000 });
                 const contactData = await extractContactInfo(page);
-                
+
                 if (!lead.email) lead.email = contactData.email;
                 if (!lead.phone || lead.phone === 'N/A') lead.phone = contactData.phone;
                 if (!lead.instagram) lead.instagram = contactData.instagram;
                 if (!lead.facebook) lead.facebook = contactData.facebook;
+
+                // Deep Website Analysis
+                console.log(`Running deep analysis on: ${websiteToCheck}`);
+                const analysis = await analyzeWebsite(websiteToCheck);
+                if (analysis) {
+                    lead.website_analysis = analysis;
+                }
 
             } catch (e) {
                 console.log(`Website crawl failed: ${websiteToCheck}`);
@@ -278,7 +286,7 @@ async function verifyAndEnrich(lead, targetUrl = null) {
     } finally {
         await browser.close().catch(e => console.error("Error closing browser:", e));
     }
-    
+
     return lead;
 }
 
