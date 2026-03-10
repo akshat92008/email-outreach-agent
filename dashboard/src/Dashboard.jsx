@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, doc, updateDoc } from 'firebase/firestore';
 import db from './firebase';
 import { 
   Users, 
@@ -12,6 +12,7 @@ import {
   BarChart3,
   Search
 } from 'lucide-react';
+import Chatbot from './Chatbot';
 
 function Dashboard() {
   const [leads, setLeads] = useState([]);
@@ -45,6 +46,18 @@ function Dashboard() {
     hot: leads.filter(l => l.score >= 5).length,
     contacted: leads.filter(l => l.contacted_status !== 'pending').length,
     emails: leads.filter(l => l.contacted_status === 'emailed').length
+  };
+
+  const toggleStatus = async (id, currentStatus) => {
+    try {
+      const newStatus = currentStatus === 'pending' ? 'emailed' : 'pending';
+      const leadRef = doc(db, 'leads', id);
+      await updateDoc(leadRef, {
+        contacted_status: newStatus
+      });
+    } catch (error) {
+      console.error("Error updating status:", error);
+    }
   };
 
   if (loading) return <div style={{padding: '4rem', textAlign: 'center'}}>Loading Dashboard...</div>;
@@ -126,16 +139,39 @@ function Dashboard() {
                   </td>
                   <td>
                     <div style={{display: 'flex', gap: '0.5rem'}}>
-                      {lead.phone && <PhoneCall size={16} className="text-muted" />}
-                      {lead.email && <Mail size={16} className="text-muted" />}
+                      {lead.phone && lead.phone !== 'N/A' && (
+                        <a href={`tel:${lead.phone.replace(/[^0-9+]/g, '')}`} title="Call Lead">
+                          <PhoneCall size={16} className="text-muted" style={{cursor: 'pointer'}} />
+                        </a>
+                      )}
+                      {lead.email && lead.email !== 'Pending Verification' && (
+                        <a 
+                          href={`mailto:${lead.email}?subject=Partnership Inquiry - ${lead.name}&body=${encodeURIComponent(lead.outreach_message || 'Hi, I noticed your business and would like to connect.')}`}
+                          title="Email Lead"
+                        >
+                          <Mail size={16} className="text-muted" style={{cursor: 'pointer'}} />
+                        </a>
+                      )}
                     </div>
                   </td>
                   <td>
                     <div style={{display: 'flex', gap: '0.5rem'}}>
-                      <button className="btn btn-outline" style={{padding: '0.4rem'}}>
+                      <a 
+                        href={lead.facebook && lead.facebook !== 'Pending Verification' ? lead.facebook : `https://www.google.com/search?q=${encodeURIComponent(lead.name + ' ' + (lead.city || ''))}`}
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="btn btn-outline" 
+                        style={{padding: '0.4rem', display: 'flex', alignItems: 'center', justifyContent: 'center'}}
+                        title="View Web Presence"
+                      >
                         <ExternalLink size={16} />
-                      </button>
-                      <button className="btn btn-primary" style={{padding: '0.4rem'}}>
+                      </a>
+                      <button 
+                        className={`btn ${lead.contacted_status === 'pending' ? 'btn-primary' : 'btn-outline'}`}
+                        style={{padding: '0.4rem'}}
+                        onClick={() => toggleStatus(lead.id, lead.contacted_status)}
+                        title={lead.contacted_status === 'pending' ? "Mark as Contacted" : "Mark as Pending"}
+                      >
                         <Send size={16} />
                       </button>
                     </div>
@@ -146,6 +182,7 @@ function Dashboard() {
           </table>
         </div>
       </div>
+      <Chatbot />
     </div>
   );
 }
