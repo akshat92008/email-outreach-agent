@@ -1,13 +1,10 @@
-import React, { useState } from 'react';
-import { Mail, PhoneCall, Facebook, Instagram, Linkedin, MessageCircle, MoreVertical } from 'lucide-react';
-
 const STAGES = [
-    { id: 'new', label: 'New Lead', color: 'var(--primary)' },
-    { id: 'contacted', label: 'Contacted', color: '#f39c12' },
-    { id: 'replied', label: 'Replied', color: '#3498db' },
-    { id: 'demo_booked', label: 'Demo Booked', color: '#9b59b6' },
-    { id: 'closed', label: 'Closed', color: 'var(--success)' },
-    { id: 'lost', label: 'Lost', color: 'var(--danger)' }
+    { id: 'new', label: 'Inbound', color: 'var(--primary)', icon: '📥' },
+    { id: 'contacted', label: 'Outreach', color: '#f39c12', icon: '✉️' },
+    { id: 'replied', label: 'Negotiations', color: '#3498db', icon: '💬' },
+    { id: 'demo_booked', label: 'Discovery', color: '#9b59b6', icon: '🎥' },
+    { id: 'closed', label: 'Won', color: 'var(--success)', icon: '🏆' },
+    { id: 'lost', label: 'Dormant', color: '#64748b', icon: '💤' }
 ];
 
 export default function PipelineBoard({ leads, updateLeadStatus, setSelectedLead }) {
@@ -18,7 +15,6 @@ export default function PipelineBoard({ leads, updateLeadStatus, setSelectedLead
         e.dataTransfer.effectAllowed = 'move';
         e.dataTransfer.setData('text/plain', leadId);
 
-        // Slight delay for visual drag ghosting styling
         setTimeout(() => {
             if (e.target) e.target.style.opacity = '0.4';
         }, 0);
@@ -39,13 +35,12 @@ export default function PipelineBoard({ leads, updateLeadStatus, setSelectedLead
         const leadId = e.dataTransfer.getData('text/plain');
 
         const lead = leads.find(l => l.id === leadId);
-        if (!lead || lead.status === targetStageId) return; // Prevent unnecessary DB calls
+        if (!lead || lead.status === targetStageId) return;
 
         await updateLeadStatus(leadId, targetStageId);
         setDraggedLeadId(null);
     };
 
-    // Group leads by their status. Fallback to 'new' if undefined.
     const leadsByStage = STAGES.reduce((acc, stage) => {
         acc[stage.id] = leads.filter(l => (l.status || 'new') === stage.id);
         return acc;
@@ -54,10 +49,11 @@ export default function PipelineBoard({ leads, updateLeadStatus, setSelectedLead
     return (
         <div className="pipeline-board" style={{
             display: 'flex',
-            gap: '1rem',
+            gap: '1.25rem',
             overflowX: 'auto',
-            paddingBottom: '1rem',
-            minHeight: '600px'
+            paddingBottom: '1.5rem',
+            minHeight: '650px',
+            scrollbarWidth: 'thin'
         }}>
             {STAGES.map(stage => (
                 <div
@@ -67,39 +63,46 @@ export default function PipelineBoard({ leads, updateLeadStatus, setSelectedLead
                     onDrop={(e) => handleDrop(e, stage.id)}
                     style={{
                         flex: '0 0 320px',
-                        backgroundColor: 'var(--bg-color)',
-                        borderRadius: '8px',
-                        border: `1px solid var(--border)`,
+                        background: 'rgba(15, 23, 42, 0.4)',
+                        borderRadius: '1.25rem',
+                        border: '1px solid var(--border)',
                         display: 'flex',
-                        flexDirection: 'column'
+                        flexDirection: 'column',
+                        transition: 'all 0.3s'
                     }}
                 >
                     {/* Column Header */}
                     <div style={{
-                        padding: '1rem',
-                        borderBottom: '2px solid',
-                        borderBottomColor: stage.color,
+                        padding: '1.25rem',
                         display: 'flex',
                         justifyContent: 'space-between',
                         alignItems: 'center',
-                        backgroundColor: 'var(--card-bg)',
-                        borderTopLeftRadius: '8px',
-                        borderTopRightRadius: '8px'
                     }}>
-                        <h3 style={{ margin: 0, fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: stage.color }}></span>
-                            {stage.label}
-                        </h3>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                            <span style={{ fontSize: '1.1rem' }}>{stage.icon}</span>
+                            <h3 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 700, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--text-main)' }}>
+                                {stage.label}
+                            </h3>
+                        </div>
                         <span style={{
-                            backgroundColor: 'var(--border)',
-                            padding: '2px 8px',
-                            borderRadius: '12px',
-                            fontSize: '0.8rem',
-                            fontWeight: 'bold'
+                            backgroundColor: 'rgba(255,255,255,0.05)',
+                            color: 'var(--text-muted)',
+                            padding: '2px 10px',
+                            borderRadius: '10px',
+                            fontSize: '0.7rem',
+                            fontWeight: 700,
+                            border: '1px solid var(--border)'
                         }}>
                             {leadsByStage[stage.id].length}
                         </span>
                     </div>
+
+                    <div style={{
+                        height: '2px',
+                        width: '100%',
+                        background: `linear-gradient(90deg, ${stage.color} 0%, transparent 100%)`,
+                        opacity: 0.5
+                    }}></div>
 
                     {/* Draggable Cards Container */}
                     <div style={{
@@ -108,8 +111,7 @@ export default function PipelineBoard({ leads, updateLeadStatus, setSelectedLead
                         overflowY: 'auto',
                         display: 'flex',
                         flexDirection: 'column',
-                        gap: '0.75rem',
-                        backgroundColor: draggedLeadId ? 'rgba(0,0,0,0.02)' : 'transparent'
+                        gap: '0.85rem',
                     }}>
                         {leadsByStage[stage.id].map(lead => (
                             <div
@@ -120,43 +122,51 @@ export default function PipelineBoard({ leads, updateLeadStatus, setSelectedLead
                                 onClick={() => setSelectedLead(lead)}
                                 className="pipeline-card"
                                 style={{
-                                    backgroundColor: 'var(--card-bg)',
-                                    padding: '1rem',
-                                    borderRadius: '6px',
-                                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                                    backgroundColor: 'var(--bg-card)',
+                                    padding: '1.25rem',
+                                    borderRadius: '1rem',
                                     border: '1px solid var(--border)',
                                     cursor: 'grab',
                                     display: 'flex',
                                     flexDirection: 'column',
-                                    gap: '0.5rem',
+                                    gap: '0.65rem',
                                     position: 'relative',
-                                    transition: 'transform 0.1s ease',
+                                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
                                 }}
                             >
-                                {/* Score Badge */}
-                                <div style={{ position: 'absolute', top: '-8px', right: '-8px' }}>
-                                    {lead.score >= 75 ? (
-                                        <span className="badge badge-priority-high shadow-sm" style={{ padding: '2px 6px', fontSize: '0.65rem' }}>{lead.score}★</span>
-                                    ) : lead.score >= 40 ? (
-                                        <span className="badge badge-priority-medium shadow-sm" style={{ padding: '2px 6px', fontSize: '0.65rem' }}>{lead.score}★</span>
-                                    ) : (
-                                        <span className="badge badge-priority-low shadow-sm" style={{ padding: '2px 6px', fontSize: '0.65rem' }}>{lead.score}★</span>
-                                    )}
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                    <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#fff', letterSpacing: '-0.01em', lineHeight: 1.3 }}>
+                                        {lead.name}
+                                    </div>
+                                    <div style={{
+                                        fontSize: '0.65rem',
+                                        fontWeight: 800,
+                                        color: lead.score >= 75 ? 'var(--accent)' : 'var(--text-muted)',
+                                        background: 'rgba(255,255,255,0.03)',
+                                        padding: '2px 6px',
+                                        borderRadius: '6px',
+                                        border: '1px solid var(--border)'
+                                    }}>
+                                        {lead.score || 0}%
+                                    </div>
                                 </div>
 
-                                <div style={{ fontWeight: 600, fontSize: '0.95rem', color: 'var(--primary)', paddingRight: '20px' }}>
-                                    {lead.name}
+                                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 500 }}>
+                                    {lead.niche} <span style={{ opacity: 0.4 }}>•</span> {lead.city}
                                 </div>
 
-                                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                                    {lead.niche} • {lead.city}
-                                </div>
-
-                                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem', paddingTop: '0.5rem', borderTop: '1px dashed var(--border)' }}>
-                                    {lead.email && <Mail size={14} style={{ color: 'var(--primary)' }} title="Email Available" />}
-                                    {lead.phone && lead.phone !== 'N/A' && <PhoneCall size={14} style={{ color: 'var(--primary)' }} title="Phone Available" />}
-                                    {lead.linkedin && <Linkedin size={14} style={{ color: '#0A66C2' }} title="LinkedIn Available" />}
-                                    {lead.instagram && <Instagram size={14} style={{ color: '#E4405F' }} title="Instagram Available" />}
+                                <div style={{
+                                    display: 'flex',
+                                    gap: '0.75rem',
+                                    marginTop: '0.5rem',
+                                    paddingTop: '0.85rem',
+                                    borderTop: '1px solid var(--border)'
+                                }}>
+                                    {lead.email && <Mail size={14} style={{ opacity: 0.7 }} />}
+                                    {lead.phone && lead.phone !== 'N/A' && <PhoneCall size={14} style={{ opacity: 0.7 }} />}
+                                    {lead.linkedin && <Linkedin size={14} style={{ color: '#0A66C2', opacity: 0.8 }} />}
+                                    {lead.instagram && <Instagram size={14} style={{ color: '#E4405F', opacity: 0.8 }} />}
                                 </div>
                             </div>
                         ))}

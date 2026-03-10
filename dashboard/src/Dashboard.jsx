@@ -185,28 +185,41 @@ function Dashboard() {
     document.body.removeChild(link);
   };
 
-  if (loading) return <div style={{ padding: '4rem', textAlign: 'center' }}>Loading Dashboard...</div>;
+  if (loading) return <div style={{ padding: '8rem', textAlign: 'center', color: 'var(--primary)', fontWeight: 600, fontSize: '1.2rem' }}>
+    <Activity size={48} style={{ marginBottom: '1rem', opacity: 0.8 }} className="animate-pulse" />
+    <div style={{ letterSpacing: '0.1em' }}>INITIALIZING COMMAND CENTER...</div>
+  </div>;
 
   return (
     <div className="dashboard-container">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+      {/* Header Section */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '3rem' }}>
         <div>
-          <h1 style={{ marginBottom: '0.25rem' }}>Lead Generation Machine</h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Real-time lead intelligence & outreach automation</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+            <div style={{ padding: '0.5rem', background: 'var(--primary)', borderRadius: '12px', boxShadow: '0 0 20px var(--primary-glow)' }}>
+              <Users size={24} color="white" />
+            </div>
+            <h1 style={{ margin: 0 }}>Lead Gen Pro <span style={{ color: 'var(--primary)', fontWeight: 400, opacity: 0.7 }}>V2.1</span></h1>
+          </div>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', fontWeight: 500 }}>
+            Unified Intelligence & Multi-Channel Outreach Pipeline
+          </p>
         </div>
+
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <div style={{ position: 'relative', width: '300px' }}>
-            <Search size={18} style={{ position: 'absolute', left: '12px', top: '12px', color: 'var(--text-muted)' }} />
+          <div style={{ position: 'relative', width: '320px' }}>
+            <Search size={18} style={{ position: 'absolute', left: '14px', top: '14px', color: 'var(--text-muted)', opacity: 0.6 }} />
             <input
-              style={{ paddingLeft: '2.5rem' }}
-              placeholder="Search leads..."
+              className="input-glow"
+              style={{ paddingLeft: '2.75rem', background: 'rgba(15, 23, 42, 0.4)', borderRadius: '14px' }}
+              placeholder="Search prospects or locations..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'var(--card-bg)', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid var(--border)' }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>Hide Contacted</span>
-            <label className="switch" style={{ scale: '0.8' }}>
+          <div className="glass-card" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.6rem 1rem', borderRadius: '14px' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.05em', color: 'var(--text-muted)' }}>MUTE CONTACTED</span>
+            <label className="switch" style={{ scale: '0.75' }}>
               <input
                 type="checkbox"
                 checked={hideContacted}
@@ -215,71 +228,95 @@ function Dashboard() {
               <span className="slider"></span>
             </label>
           </div>
-          <button className="btn btn-outline" style={{ borderColor: '#fca5a5', color: '#dc2626' }} onClick={clearAllContacted}>
-            <Trash2 size={18} /> Clear Contacted
+          <button className="btn btn-outline" style={{ color: 'var(--danger)', borderRadius: '14px' }} onClick={clearAllContacted}>
+            <Trash2 size={18} />
           </button>
-          <button className="btn btn-outline" onClick={exportLeads}>
+          <button className="btn btn-primary" style={{ borderRadius: '14px' }} onClick={exportLeads}>
             <Download size={18} /> Export
           </button>
         </div>
       </div>
 
-      {/* Quick Filters */}
-      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-        <button
-          onClick={() => setActiveFilter('all')}
-          style={{ padding: '0.5rem 1rem', borderRadius: '20px', border: '1px solid var(--border)', background: activeFilter === 'all' ? 'var(--primary)' : 'transparent', color: activeFilter === 'all' ? 'white' : 'var(--text)', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600, transition: '0.2s' }}>
-          All Leads
-        </button>
-        <button
-          onClick={() => setActiveFilter('high_value')}
-          style={{ padding: '0.5rem 1rem', borderRadius: '20px', border: '1px solid var(--border)', background: activeFilter === 'high_value' ? 'var(--primary)' : 'transparent', color: activeFilter === 'high_value' ? 'white' : 'var(--text)', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600, transition: '0.2s', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-          <Flame size={14} color={activeFilter === 'high_value' ? 'white' : '#f87171'} /> High Value (&gt;75)
-        </button>
-        <button
-          onClick={() => setActiveFilter('no_website')}
-          style={{ padding: '0.5rem 1rem', borderRadius: '20px', border: '1px solid var(--border)', background: activeFilter === 'no_website' ? 'var(--primary)' : 'transparent', color: activeFilter === 'no_website' ? 'white' : 'var(--text)', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600, transition: '0.2s', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-          <ExternalLink size={14} color={activeFilter === 'no_website' ? 'white' : '#60a5fa'} /> No Website
-        </button>
-      </div>
+      {/* Discovery Engine & Stats Grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '2rem', marginBottom: '2.5rem' }}>
+        <div className="card discovery-engine" style={{ padding: '2rem' }}>
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
+              <div style={{ padding: '0.4rem', background: 'rgba(34, 211, 238, 0.1)', borderRadius: '8px', border: '1px solid var(--accent)' }}>
+                <Search size={18} color="var(--accent)" />
+              </div>
+              <h3 style={{ margin: 0, fontSize: '1.25rem' }}>Cloud Discovery Engine</h3>
+            </div>
 
-      <div className="card" style={{ marginBottom: '2rem', padding: '1.5rem', background: 'linear-gradient(135deg, #eff6ff 0%, #ffffff 100%)', border: '1px solid #bfdbfe' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-          <div>
-            <h3 style={{ margin: 0, color: '#1e40af', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Search size={20} /> Lead Discovery Engine (Cloud)
-            </h3>
-            <p style={{ fontSize: '0.8rem', color: '#1e3a8a', opacity: 0.8, margin: '0.25rem 0 0 0' }}>
-              Target new prospects globally using our AI-powered cloud scrapers.
-            </p>
+            <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'flex-end' }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, marginBottom: '0.6rem', color: 'var(--text-muted)', letterSpacing: '0.05em' }}>TARGET NICHE</label>
+                <input
+                  className="input-glow"
+                  value={newNiche}
+                  onChange={(e) => setNewNiche(e.target.value)}
+                  placeholder="e.g. Luxury Real Estate"
+                  style={{ width: '100%', background: 'rgba(2, 6, 23, 0.5)' }}
+                />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, marginBottom: '0.6rem', color: 'var(--text-muted)', letterSpacing: '0.05em' }}>GEO LOCATION</label>
+                <input
+                  className="input-glow"
+                  value={newLocation}
+                  onChange={(e) => setNewLocation(e.target.value)}
+                  placeholder="e.g. Dubai, UAE"
+                  style={{ width: '100%', background: 'rgba(2, 6, 23, 0.5)' }}
+                />
+              </div>
+              <button
+                className="btn btn-primary"
+                onClick={startCloudScan}
+                disabled={isScanning}
+                style={{ height: '48px', padding: '0 2.5rem', borderRadius: '12px' }}
+              >
+                {isScanning ? (
+                  <>
+                    <Activity size={18} className="animate-spin" /> Launching...
+                  </>
+                ) : 'Execute Scan'}
+              </button>
+            </div>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
-          <div style={{ flex: 1 }}>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.4rem', color: '#1e40af' }}>NICHE (E.G. COACH, DENTIST)</label>
-            <input
-              value={newNiche}
-              onChange={(e) => setNewNiche(e.target.value)}
-              placeholder="Who are we looking for?"
-              style={{ width: '100%', borderColor: '#60a5fa' }}
-            />
+
+        <div className="glass-card" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', padding: '1.5rem' }}>
+          <div className="stat-card">
+            <span className="label">Pipeline Size</span>
+            <span className="value">{stats.total}</span>
           </div>
-          <div style={{ flex: 1 }}>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.4rem', color: '#1e40af' }}>LOCATION (E.G. NEW YORK, LONDON)</label>
-            <input
-              value={newLocation}
-              onChange={(e) => setNewLocation(e.target.value)}
-              placeholder="Where should we look?"
-              style={{ width: '100%', borderColor: '#60a5fa' }}
-            />
+          <div className="stat-card">
+            <span className="label">Conversion</span>
+            <span className="value">{stats.conversion}<span style={{ fontSize: '1rem', opacity: 0.6 }}>%</span></span>
           </div>
-          <button
-            className="btn btn-primary"
-            onClick={startCloudScan}
-            disabled={isScanning}
-            style={{ height: '42px', backgroundColor: '#2563eb', padding: '0 2rem' }}
-          >
-            {isScanning ? 'Initiating...' : 'Launch AI Scan'}
+          <div className="stat-card">
+            <span className="label">Growth (24h)</span>
+            <span className="value" style={{ color: 'var(--success)', background: 'none', WebkitTextFillColor: 'unset' }}>+{stats.velocity}</span>
+          </div>
+          <div className="stat-card">
+            <span className="label">High Intent</span>
+            <span className="value" style={{ color: 'var(--accent)', background: 'none', WebkitTextFillColor: 'unset' }}>{stats.highValue}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Global Filters */}
+      <div style={{ display: 'flex', gap: '1rem', marginBottom: '2.5rem', alignItems: 'center' }}>
+        <TrendingUp size={18} color="var(--primary)" />
+        <div style={{ display: 'flex', gap: '0.6rem' }}>
+          <button onClick={() => setActiveFilter('all')} className={`btn btn-outline ${activeFilter === 'all' ? 'active-view' : ''}`} style={{ padding: '0.5rem 1.25rem', borderRadius: '30px', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            Master List
+          </button>
+          <button onClick={() => setActiveFilter('high_value')} className={`btn btn-outline ${activeFilter === 'high_value' ? 'active-view' : ''}`} style={{ padding: '0.5rem 1.25rem', borderRadius: '30px', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            High Intent Only
+          </button>
+          <button onClick={() => setActiveFilter('no_website')} className={`btn btn-outline ${activeFilter === 'no_website' ? 'active-view' : ''}`} style={{ padding: '0.5rem 1.25rem', borderRadius: '30px', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            Gap Analysis (No Web)
           </button>
         </div>
       </div>
