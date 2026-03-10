@@ -139,18 +139,27 @@ function Dashboard() {
                   </td>
                   <td>
                     <div style={{display: 'flex', gap: '0.5rem'}}>
-                      {lead.phone && lead.phone !== 'N/A' && (
+                      {lead.phone && lead.phone !== 'N/A' ? (
                         <a href={`tel:${lead.phone.replace(/[^0-9+]/g, '')}`} title="Call Lead">
-                          <PhoneCall size={16} className="text-muted" style={{cursor: 'pointer'}} />
+                          <PhoneCall size={16} className="text-muted" style={{cursor: 'pointer', color: 'var(--primary)'}} />
                         </a>
+                      ) : (
+                        <span title="Phone Number Unavailable">
+                          <PhoneCall size={16} style={{cursor: 'not-allowed', color: 'var(--border)', opacity: 0.5}} />
+                        </span>
                       )}
-                      {lead.email && lead.email !== 'Pending Verification' && (
+
+                      {lead.email && lead.email !== 'Pending Verification' ? (
                         <a 
                           href={`mailto:${lead.email}?subject=Partnership Inquiry - ${lead.name}&body=${encodeURIComponent(lead.outreach_message || 'Hi, I noticed your business and would like to connect.')}`}
                           title="Email Lead"
                         >
-                          <Mail size={16} className="text-muted" style={{cursor: 'pointer'}} />
+                          <Mail size={16} className="text-muted" style={{cursor: 'pointer', color: 'var(--primary)'}} />
                         </a>
+                      ) : (
+                        <span title="Email Address Unavailable">
+                          <Mail size={16} style={{cursor: 'not-allowed', color: 'var(--border)', opacity: 0.5}} />
+                        </span>
                       )}
                     </div>
                   </td>
