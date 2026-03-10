@@ -28,6 +28,15 @@ async function extractContactInfo(page) {
 
         const telLinks = await page.$$eval('a[href^="tel:"]', links => links.map(a => a.href.replace('tel:', '')));
         if (telLinks.length > 0) phones.push(...telLinks);
+
+        const instaLinks = await page.$$eval('a[href*="instagram.com"]', links => links.map(a => a.href));
+        const fbLinks = await page.$$eval('a[href*="facebook.com"]', links => links.map(a => a.href));
+        
+        contactData.email = cleanData(emails);
+        contactData.phone = cleanData(phones);
+        contactData.instagram = cleanData(instaLinks);
+        contactData.facebook = cleanData(fbLinks);
+
     } catch (e) {
         // Ignore evaluation errors
     }
@@ -37,19 +46,22 @@ async function extractContactInfo(page) {
         const bodyText = await page.evaluate(() => document.body.innerText || document.body.textContent);
         if (bodyText) {
             const regexEmails = bodyText.match(EMAIL_REGEX);
-            if (regexEmails) emails.push(...regexEmails);
+            if (regexEmails) {
+                const cleaned = cleanData(regexEmails);
+                if (cleaned && !contactData.email) contactData.email = cleaned;
+            }
 
             const regexPhones = bodyText.match(PHONE_REGEX);
-            if (regexPhones) phones.push(...regexPhones);
+            if (regexPhones) {
+                const cleaned = cleanData(regexPhones);
+                if (cleaned && !contactData.phone) contactData.phone = cleaned;
+            }
         }
     } catch (e) {
         // Ignore rendering errors
     }
 
-    return {
-        email: cleanData(emails),
-        phone: cleanData(phones)
-    };
+    return contactData;
 }
 
 async function verifyAndEnrich(lead, targetUrl = null) {
@@ -131,6 +143,8 @@ async function verifyAndEnrich(lead, targetUrl = null) {
         }
 
         lead.email = contactData.email;
+        if (!lead.instagram) lead.instagram = contactData.instagram;
+        if (!lead.facebook) lead.facebook = contactData.facebook;
         if (!lead.phone || lead.phone === 'N/A') {
             lead.phone = contactData.phone;
         }

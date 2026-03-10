@@ -16,7 +16,10 @@ import {
   ArrowUpRight,
   TrendingDown,
   X,
-  History
+  History,
+  Instagram,
+  Facebook,
+  Check
 } from 'lucide-react';
 import Chatbot from './Chatbot';
 
@@ -25,6 +28,14 @@ function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedLead, setSelectedLead] = useState(null);
+  const [copyStatus, setCopyStatus] = useState(null);
+
+  const copyToClipboard = (text, type) => {
+    navigator.clipboard.writeText(text);
+    setCopyStatus(type);
+    setTimeout(() => setCopyStatus(null), 2000);
+  };
+
 
   useEffect(() => {
     const q = query(collection(db, "leads"), orderBy("created_at", "desc"));
@@ -182,7 +193,7 @@ function Dashboard() {
                     </td>
                     <td>{lead.city}, {lead.country}</td>
                     <td>
-                      <div style={{display: 'flex', gap: '0.5rem'}}>
+                      <div style={{display: 'flex', gap: '0.75rem', alignItems: 'center'}}>
                         {lead.phone && lead.phone !== 'N/A' ? (
                           <a href={`tel:${lead.phone.replace(/[^0-9+]/g, '')}`} title="Call Lead">
                             <PhoneCall size={16} style={{cursor: 'pointer', color: 'var(--primary)'}} />
@@ -192,9 +203,10 @@ function Dashboard() {
                             <PhoneCall size={16} style={{color: 'var(--border)', opacity: 0.5}} />
                           </span>
                         )}
+                        
                         {lead.email ? (
                           <a 
-                            href={`https://mail.google.com/mail/?view=cm&fs=1&to=${lead.email}&su=${encodeURIComponent('Partnership Inquiry')}&body=${encodeURIComponent(lead.outreach_message || 'Hi, I noticed your business...')}`}
+                            href={`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(lead.email)}&su=${encodeURIComponent('Partnership Inquiry')}&body=${encodeURIComponent(lead.outreach_message || 'Hi, I noticed your business...')}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             title="Email Lead via Gmail"
@@ -206,7 +218,44 @@ function Dashboard() {
                             <Mail size={16} style={{color: 'var(--border)', opacity: 0.5}} />
                           </span>
                         )}
+
+                        {lead.facebook ? (
+                          <a 
+                            href={lead.facebook.includes('m.me') ? lead.facebook : `https://m.me/${lead.facebook.split('/').filter(Boolean).pop()}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={() => copyToClipboard(lead.outreach_message || '', 'Facebook')}
+                            title="Message on FB (Auto-copy Message)"
+                          >
+                            <Facebook size={16} style={{cursor: 'pointer', color: '#1877F2'}} />
+                          </a>
+                        ) : (
+                          <span title="Facebook Unavailable">
+                            <Facebook size={16} style={{color: 'var(--border)', opacity: 0.5}} />
+                          </span>
+                        )}
+
+                        {lead.instagram ? (
+                          <a 
+                            href={lead.instagram}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={() => copyToClipboard(lead.outreach_message || '', 'Instagram')}
+                            title="Message on Instagram (Auto-copy Message)"
+                          >
+                            <Instagram size={16} style={{cursor: 'pointer', color: '#E4405F'}} />
+                          </a>
+                        ) : (
+                          <span title="Instagram Unavailable">
+                            <Instagram size={16} style={{color: 'var(--border)', opacity: 0.5}} />
+                          </span>
+                        )}
                       </div>
+                      {copyStatus && (
+                        <div style={{position: 'fixed', bottom: '20px', left: '50%', transform: 'translateX(-50%)', backgroundColor: 'var(--success)', color: 'white', padding: '0.5rem 1rem', borderRadius: '8px', zIndex: 1001, display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
+                            <Check size={16} /> Outreach message copied for {copyStatus}!
+                        </div>
+                      )}
                     </td>
                     <td>
                       <label className="switch" title="Toggle Contacted Status">
@@ -221,18 +270,20 @@ function Dashboard() {
                     <td>
                       <div style={{display: 'flex', gap: '0.5rem'}}>
                         <a 
-                          href={lead.facebook || `https://www.google.com/search?q=${encodeURIComponent(lead.name + ' ' + (lead.city || ''))}`}
+                          href={`https://www.google.com/search?q=${encodeURIComponent(lead.name + ' ' + (lead.city || ''))}`}
                           target="_blank" 
                           rel="noopener noreferrer"
                           className="btn-outline" 
                           style={{padding: '0.4rem', borderRadius: '4px', display: 'flex', alignItems: 'center'}}
+                          title="Search Business on Web"
                         >
-                          <ExternalLink size={16} />
+                          <Search size={16} />
                         </a>
                         <button 
                             className="btn-outline"
-                            style={{padding: '0.4rem', borderRadius: '4px'}}
+                            style={{padding: '0.4rem', borderRadius: '4px', cursor: 'pointer'}}
                             onClick={() => setSelectedLead(lead)}
+                            title="View Full Lead Insights & History"
                         >
                             <History size={16} />
                         </button>

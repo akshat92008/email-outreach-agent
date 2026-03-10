@@ -76,6 +76,7 @@ async function searchBusinesses(niche, location) {
                     country: location.split(',').pop().trim(),
                     email: null,
                     facebook: null,
+                    instagram: null,
                     status: 'pending',
                     contacted_status: 'pending',
                     score: Math.floor(Math.random() * 10) + 1, // Simulated initial score
