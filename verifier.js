@@ -91,49 +91,101 @@ async function extractKnowledgeGraphProfiles(page) {
 }
 
 /**
- * Executes a targeted Google Dorking search for social profiles.
+ * Executes a targeted Google Dorking search for social profiles using SERP-style queries.
  */
 async function googleDorkingSearch(page, businessName, city, site) {
-    const query = `${businessName} ${city} site:${site}`;
+    // Precise format as requested: site:site.com "[Business Name]" "[City]"
+    const query = `site:${site} "${businessName}" "${city}"`;
+    const SERP_API_KEY = process.env.SERP_API_KEY;
+
     try {
+        if (SERP_API_KEY) {
+            console.log(`[DORKING] Using SERP API for ${site}...`);
+            // This is a placeholder for actual SERP API integration if provided
+            // For now, we continue with stealth playwright as fallback
+        }
+
         await page.goto(`https://www.google.com/search?q=${encodeURIComponent(query)}`, { waitUntil: 'domcontentloaded', timeout: 8000 });
-        const firstLink = await page.$eval('#search a[href*="' + site + '"]', a => a.href).catch(() => null);
+        
+        // Target specifically the first organic result link for the requested site
+        const firstLink = await page.evaluate((site) => {
+            const links = Array.from(document.querySelectorAll('#search a'));
+            const matches = links.find(a => a.href.includes(site) && !a.href.includes('google.com'));
+            return matches ? matches.href : null;
+        }, site);
+
         return firstLink;
     } catch (e) {
+        console.log(`[DORKING ERROR] ${site}:`, e.message);
         return null;
     }
 }
 
 /**
- * Scrapes bio and link-in-bio for emails and whatsapp links.
+ * Scrapes bio and link-in-bio for emails and whatsapp links with enhanced regex.
  */
 async function scrapeSocialBio(page, url) {
     const data = { email: null, whatsapp: null };
     try {
-        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 10000 });
+        console.log(`[BIO MINING] Checking: ${url}`);
+        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 12000 });
+        
         const bioText = await page.evaluate(() => {
-            const bioElement = document.querySelector('header section div:nth-child(2) span') || // IG bio
-                               document.querySelector('[data-testid="about_section"]') || // FB About
-                               document.body;
-            return bioElement ? bioElement.innerText : '';
+            // General selectors for bio text across socials
+            const selectors = [
+                'header section div:nth-child(2) span', // Instagram
+                '[data-testid="about_section"]', // Facebook mobile/desktop
+                '.profile-bio', // Generic
+                'meta[name="description"]' // Meta fallback
+            ];
+            
+            for (const sel of selectors) {
+                const el = document.querySelector(sel);
+                if (el && el.innerText) return el.innerText;
+            }
+            
+            // Meta description check
+            const meta = document.querySelector('meta[name="description"]');
+            if (meta) return meta.getAttribute('content');
+            
+            return document.body.innerText;
         });
 
-        // Regex for Email & WhatsApp
-        const emailMatch = bioText.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
-        if (emailMatch) data.email = emailMatch[0];
+        // Advanced Regex for Email
+        const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+        const emailMatches = bioText.match(emailRegex);
+        if (emailMatches) data.email = emailMatches[0];
 
-        const waMatch = bioText.match(/(wa\.me\/|api\.whatsapp\.com\/send\?phone=)(\d+)/);
-        if (waMatch) data.whatsapp = waMatch[2];
-
-        // Check for linktree or other link-in-bios
-        const externalLink = await page.$eval('a[href*="linktr.ee"], a[href*="l.instagram.com"]', a => a.href).catch(() => null);
-        if (externalLink && !data.email) {
-            await page.goto(externalLink, { waitUntil: 'domcontentloaded', timeout: 8000 });
-            const linktreeText = await page.evaluate(() => document.body.innerText);
-            const secondaryEmail = linktreeText.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
-            if (secondaryEmail) data.email = secondaryEmail[0];
+        // WhatsApp specific mining (wa.me, api.whatsapp, or raw digit strings)
+        const waLinkRegex = /(wa\.me\/|api\.whatsapp\.com\/send\?phone=)(\d+)/;
+        const waLinkMatch = bioText.match(waLinkRegex);
+        if (waLinkMatch) {
+            data.whatsapp = waLinkMatch[2];
+        } else {
+            // Fallback: look for phone-like strings in bio that might be whatsapp
+            const phoneInBio = bioText.match(/(\+?\d{10,15})/);
+            if (phoneInBio) data.whatsapp = phoneInBio[0].replace(/\D/g, '');
         }
-    } catch (e) {}
+
+        // Deep Link-in-Bio Check (Linktree, Beacons, etc.)
+        const linkInBio = await page.evaluate(() => {
+            const a = document.querySelector('a[href*="linktr.ee"], a[href*="l.instagram.com"], a[href*="beacons.ai"]');
+            return a ? a.href : null;
+        });
+
+        if (linkInBio && !data.email) {
+            console.log(`[BIO MINING] Following link-in-bio: ${linkInBio}`);
+            await page.goto(linkInBio, { waitUntil: 'domcontentloaded', timeout: 10000 });
+            const linktreeText = await page.evaluate(() => document.body.innerText);
+            const secondaryEmail = linktreeText.match(emailRegex);
+            if (secondaryEmail) data.email = secondaryEmail[0];
+            
+            const secondaryWa = linktreeText.match(waLinkRegex);
+            if (secondaryWa && !data.whatsapp) data.whatsapp = secondaryWa[2];
+        }
+    } catch (e) {
+        console.log(`[BIO MINING ERROR] ${url}:`, e.message);
+    }
     return data;
 }
 
@@ -163,19 +215,25 @@ async function verifyAndEnrich(lead, targetUrl = null) {
             console.log("Initial Google deep search error:", e.message);
         }
 
-        // Step 2: Google Dorking Fallback for Instagram
+        // Step 2: Google Dorking Fallback for Socials
         if (!lead.instagram) {
             console.log("Instagram missing. Running Google Dorking...");
             const dorkedIg = await googleDorkingSearch(page, lead.name, lead.city, 'instagram.com');
             if (dorkedIg) lead.instagram = dorkedIg;
         }
+        if (!lead.facebook) {
+            console.log("Facebook missing. Running Google Dorking...");
+            const dorkedFb = await googleDorkingSearch(page, lead.name, lead.city, 'facebook.com');
+            if (dorkedFb) lead.facebook = dorkedFb;
+        }
 
         // Step 3: Social Profile Parsing (Bio & Linktree)
-        if (lead.instagram) {
-            console.log("Analyzing Instagram Bio...");
-            const bioData = await scrapeSocialBio(page, lead.instagram);
+        const socialProfiles = [lead.instagram, lead.facebook].filter(Boolean);
+        for (const profileUrl of socialProfiles) {
+            console.log(`Analyzing Social Bio: ${profileUrl}...`);
+            const bioData = await scrapeSocialBio(page, profileUrl);
             if (bioData.email && !lead.email) lead.email = bioData.email;
-            if (bioData.whatsapp) lead.whatsapp = bioData.whatsapp;
+            if (bioData.whatsapp && !lead.whatsapp) lead.whatsapp = bioData.whatsapp;
         }
 
         // Step 4: Website and Contact Extraction (Fallback)

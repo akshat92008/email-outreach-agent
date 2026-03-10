@@ -7,6 +7,29 @@ if (!process.env.CI) {
 }
 
 const { saveLeads } = require('./storage');
+const fs = require('fs');
+const path = require('path');
+
+const DUPE_FILE = path.join(__dirname, 'scraped_leads.json');
+
+function getScrapedHistory() {
+    try {
+        if (!fs.existsSync(DUPE_FILE)) return [];
+        return JSON.parse(fs.readFileSync(DUPE_FILE, 'utf8'));
+    } catch (e) {
+        return [];
+    }
+}
+
+function addToHistory(leads) {
+    const history = getScrapedHistory();
+    const newEntries = leads.map(l => ({ name: l.name, city: l.city }));
+    fs.writeFileSync(DUPE_FILE, JSON.stringify([...history, ...newEntries], null, 2));
+}
+
+function isDuplicate(name, city, history) {
+    return history.some(h => h.name === name && h.city === city);
+}
 
 async function searchBusinesses(niche, location) {
     console.log(`[SCRAPER VERSION 2.0] Starting search for ${niche} in ${location}`);
@@ -51,42 +74,64 @@ async function searchBusinesses(niche, location) {
         
         const businessElements = await page.$$('a.hfpxzc');
         const leads = [];
+        const history = getScrapedHistory();
 
         for (const el of businessElements) {
             const name = await el.getAttribute('aria-label');
             if (!name) continue;
+            
+            const city = location.split(',')[0].trim();
+            if (isDuplicate(name, city, history)) {
+                console.log(`[SCRAPER] Skipping duplicate: ${name} in ${city}`);
+                continue;
+            }
 
             const parent = await el.evaluateHandle(node => node.closest('div.Nv2Yzb') || node.parentElement.parentElement);
             
-            // Check if website exists - more robust check
-            const hasWebsite = await parent.evaluate(p => {
-                const links = Array.from(p.querySelectorAll('a'));
-                return links.some(a => 
-                    (a.textContent && a.textContent.toLowerCase().includes('website')) ||
-                    (a.ariaLabel && a.ariaLabel.toLowerCase().includes('website'))
-                );
+            // Extract review data (simulated/simplified for speed)
+            const reviews = await parent.evaluate(p => {
+                const text = p.innerText || '';
+                const match = text.match(/\((\d+)\)/);
+                return match ? match[1] : '0';
             });
 
-                leads.push({
-                    name,
-                    niche,
-                    phone,
-                    reviews,
-                    city: location.split(',')[0].trim(),
-                    country: location.split(',').pop().trim(),
-                    email: null,
-                    facebook: null,
-                    instagram: null,
-                    whatsapp: null,
-                    linkedin: null,
-                    status: 'pending',
-                    contacted_status: 'pending',
-                    score: Math.floor(Math.random() * 10) + 1, // Simulated initial score
-                    history: [
-                        { event: 'Lead Discovered', timestamp: new Date().toISOString() }
-                    ]
-                });
+            // Extract phone number if visible in the list
+            const phone = await parent.evaluate(p => {
+                const text = p.innerText || '';
+                const match = text.match(/[\d\s-]{10,}/);
+                return match ? match[0].trim() : 'N/A';
+            });
+
+            leads.push({
+                name,
+                niche,
+                phone,
+                reviews,
+                city,
+                country: location.split(',').pop().trim(),
+                email: null,
+                facebook: null,
+                instagram: null,
+                whatsapp: null,
+                linkedin: null,
+                status: 'pending',
+                contacted_status: 'pending',
+                score: Math.floor(Math.random() * 10) + 1,
+                history: [
+                    { event: 'Lead Discovered', timestamp: new Date().toISOString() }
+                ]
+            });
         }
+
+        // Perspective for future: Check for "Next Page" button if it exists in this view
+        // Google Maps usually infinite scrolls, the scroll loop above handles it.
+        // For standard SERP, we would look for #pnnext
+
+        if (leads.length > 0) {
+            console.log(`[SCRAPER] Found ${leads.length} new leads.`);
+            addToHistory(leads);
+        }
+
         return leads;
     } finally {
         await browser.close();
