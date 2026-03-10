@@ -1,7 +1,6 @@
 node_modules
 .env
 database/outreach.db
-dashboard/dist
 .firebase
 firestore.indexes.json
 firebase-debug.log
