@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, onSnapshot, query, orderBy, doc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, doc, updateDoc, arrayUnion, deleteDoc } from 'firebase/firestore';
 import db from './firebase';
 import { 
   Users, 
@@ -21,7 +21,8 @@ import {
   Facebook,
   Check,
   MessageCircle,
-  Linkedin
+  Linkedin,
+  Trash2
 } from 'lucide-react';
 import Chatbot from './Chatbot';
 
@@ -31,6 +32,32 @@ function Dashboard() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedLead, setSelectedLead] = useState(null);
   const [copyStatus, setCopyStatus] = useState(null);
+  const [hideContacted, setHideContacted] = useState(false);
+
+  const deleteLead = async (id, name) => {
+    if (window.confirm(`Are you sure you want to permanently delete lead: ${name}?`)) {
+      try {
+        await deleteDoc(doc(db, "leads", id));
+      } catch (error) {
+        console.error("Error deleting lead:", error);
+      }
+    }
+  };
+
+  const clearAllContacted = async () => {
+    const contactedLeads = leads.filter(l => l.contacted_status !== 'pending');
+    if (contactedLeads.length === 0) return;
+
+    if (window.confirm(`Permanently delete ALL ${contactedLeads.length} contacted leads? This cannot be undone.`)) {
+      try {
+        for (const lead of contactedLeads) {
+          await deleteDoc(doc(db, "leads", lead.id));
+        }
+      } catch (error) {
+        console.error("Error clearing leads:", error);
+      }
+    }
+  };
 
   const copyToClipboard = (text, type) => {
     navigator.clipboard.writeText(text);
@@ -56,10 +83,12 @@ function Dashboard() {
     return () => unsubscribe();
   }, []);
 
-  const filteredLeads = leads.filter(l => 
-    (l.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (l.city || '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredLeads = leads.filter(l => {
+    const matchesSearch = (l.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (l.city || '').toLowerCase().includes(searchTerm.toLowerCase());
+    const isHidden = hideContacted && l.contacted_status !== 'pending';
+    return matchesSearch && !isHidden;
+  });
 
   const contactedCount = leads.filter(l => l.contacted_status !== 'pending').length;
   const stats = {
@@ -128,6 +157,20 @@ function Dashboard() {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
+          <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'var(--card-bg)', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid var(--border)'}}>
+            <span style={{fontSize: '0.8rem', fontWeight: 600}}>Hide Contacted</span>
+            <label className="switch" style={{scale: '0.8'}}>
+                <input 
+                  type="checkbox" 
+                  checked={hideContacted}
+                  onChange={(e) => setHideContacted(e.target.checked)}
+                />
+                <span className="slider"></span>
+            </label>
+          </div>
+          <button className="btn btn-outline" style={{borderColor: '#fca5a5', color: '#dc2626'}} onClick={clearAllContacted}>
+            <Trash2 size={18} /> Clear Contacted
+          </button>
           <button className="btn btn-outline" onClick={exportLeads}>
             <Download size={18} /> Export
           </button>
@@ -325,11 +368,11 @@ function Dashboard() {
                         </a>
                         <button 
                             className="btn-outline"
-                            style={{padding: '0.4rem', borderRadius: '4px', cursor: 'pointer'}}
-                            onClick={(e) => { e.stopPropagation(); setSelectedLead(lead); }}
-                            title="View Full Lead Insights & History"
+                            style={{padding: '0.4rem', borderRadius: '4px', cursor: 'pointer', borderColor: '#fca5a5', color: '#ef4444'}}
+                            onClick={(e) => { e.stopPropagation(); deleteLead(lead.id, lead.name); }}
+                            title="Delete Lead Permanently"
                         >
-                            <History size={16} />
+                            <Trash2 size={16} />
                         </button>
                       </div>
                     </td>
