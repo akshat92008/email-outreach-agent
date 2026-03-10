@@ -194,8 +194,10 @@ function Dashboard() {
                         )}
                         {lead.email ? (
                           <a 
-                            href={`mailto:${lead.email}?subject=Partnership Inquiry&body=${encodeURIComponent(lead.outreach_message || 'Hi, I noticed your business...')}`}
-                            title="Email Lead"
+                            href={`https://mail.google.com/mail/?view=cm&fs=1&to=${lead.email}&su=${encodeURIComponent('Partnership Inquiry')}&body=${encodeURIComponent(lead.outreach_message || 'Hi, I noticed your business...')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="Email Lead via Gmail"
                           >
                             <Mail size={16} style={{cursor: 'pointer', color: 'var(--primary)'}} />
                           </a>
