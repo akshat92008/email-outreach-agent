@@ -31,8 +31,24 @@ function isDuplicate(name, city, history) {
     return history.some(h => h.name === name && h.city === city);
 }
 
+const DIRECTORY_DOMAINS = [
+    'yelp.com', 'yellowpages.com', 'yellowbook.com', 'angi.com', 
+    'facebook.com', 'instagram.com', 'linkedin.com', 'tripadvisor.com', 
+    'houzz.com', 'thumbtack.com', 'bbb.org', 'crunchbase.com'
+];
+
+function isDirectory(url) {
+    if (!url) return true;
+    try {
+        const domain = new URL(url).hostname.toLowerCase();
+        return DIRECTORY_DOMAINS.some(d => domain.includes(d));
+    } catch (e) {
+        return true;
+    }
+}
+
 async function searchBusinesses(niche, location) {
-    console.log(`[SCRAPER VERSION 2.0] Starting search for ${niche} in ${location}`);
+    console.log(`[SCRAPER VERSION 3.0] Target: Website-Less ${niche} in ${location}`);
     const browser = await chromium.launch({ 
         headless: true,
         args: [
@@ -88,6 +104,19 @@ async function searchBusinesses(niche, location) {
 
             const parent = await el.evaluateHandle(node => node.closest('div.Nv2Yzb') || node.parentElement.parentElement);
             
+            // Website Detection & Filtering
+            const websiteUrl = await parent.evaluate(p => {
+                const link = p.querySelector('a[data-value="Website"]');
+                return link ? link.href : null;
+            });
+
+            const leadHasRealWebsite = websiteUrl && !isDirectory(websiteUrl);
+
+            if (leadHasRealWebsite) {
+                console.log(`[SCRAPER] Discarding ${name} (Has existing website: ${websiteUrl})`);
+                continue;
+            }
+
             // Extract review data (simulated/simplified for speed)
             const reviews = await parent.evaluate(p => {
                 const text = p.innerText || '';
@@ -114,11 +143,13 @@ async function searchBusinesses(niche, location) {
                 instagram: null,
                 whatsapp: null,
                 linkedin: null,
+                has_website: !!websiteUrl, // true if it has a directory, false if none
+                original_website: websiteUrl, // store directory link if any
                 status: 'pending',
                 contacted_status: 'pending',
                 score: Math.floor(Math.random() * 10) + 1,
                 history: [
-                    { event: 'Lead Discovered', timestamp: new Date().toISOString() }
+                    { event: 'Lead Discovered (Website-Less Target)', timestamp: new Date().toISOString() }
                 ]
             });
         }

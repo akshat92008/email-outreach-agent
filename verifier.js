@@ -237,7 +237,13 @@ async function verifyAndEnrich(lead, targetUrl = null) {
         }
 
         // Step 4: Website and Contact Extraction (Fallback)
-        if (websiteToCheck && !websiteToCheck.includes('google.com')) {
+        // Only crawl if it's NOT a directory and we have a URL
+        const isDirectory = (url) => {
+            const domains = ['yelp.com', 'facebook.com', 'instagram.com', 'linkedin.com', 'yellowpages.com'];
+            return domains.some(d => url.includes(d));
+        };
+
+        if (websiteToCheck && !websiteToCheck.includes('google.com') && !isDirectory(websiteToCheck)) {
             console.log(`Crawling website: ${websiteToCheck}`);
             try {
                 await page.goto(websiteToCheck, { waitUntil: 'domcontentloaded', timeout: 10000 });
@@ -251,6 +257,8 @@ async function verifyAndEnrich(lead, targetUrl = null) {
             } catch (e) {
                 console.log(`Website crawl failed: ${websiteToCheck}`);
             }
+        } else {
+            console.log("Skipping website crawl (Directory or No Website found)");
         }
 
         // Step 5: WhatsApp Formatting (E.164)
