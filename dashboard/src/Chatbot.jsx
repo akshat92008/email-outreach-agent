@@ -27,23 +27,28 @@ function Chatbot() {
     setInput('');
     setIsTyping(true);
 
-    // Simulate AI response delay
+    // Simulate AI response logic
     setTimeout(() => {
-      let aiResponseText = "I'm a simulated AI assistant. To make me fully functional, you can connect me to the OpenAI or Gemini API!";
+      let aiResponseText = "That's a great question! I'm currently running in high-fidelity simulation mode. To enable real-time dynamic reasoning, you can plug in an OpenAI or Gemini API key in the `Chatbot.jsx` file.";
       
       const lowerInput = userMessage.text.toLowerCase();
-      if (lowerInput.includes('hello') || lowerInput.includes('hi')) {
-        aiResponseText = "Hello! Ready to manage some leads?";
-      } else if (lowerInput.includes('lead') || lowerInput.includes('stats')) {
-        aiResponseText = "You can view all your leads and statistics right here on the dashboard. I can help you filter them if you need!";
-      } else if (lowerInput.includes('email') || lowerInput.includes('outreach')) {
-        aiResponseText = "To send an email, just click the mail icon next to any lead. It will pre-populate an outreach message for you.";
+      
+      if (lowerInput.includes('score') || lowerInput.includes('priority')) {
+        aiResponseText = "Our new priority system automatically flags leads as HIGH, MED, or LOW based on their web presence. I recommend focusing your outreach on the HIGH priority leads first for maximum conversion!";
+      } else if (lowerInput.includes('history') || lowerInput.includes('timeline')) {
+        aiResponseText = "You can now see exactly when a lead was discovered and verified! Just click any business name in the list to open their Activity Timeline.";
+      } else if (lowerInput.includes('export') || lowerInput.includes('csv')) {
+        aiResponseText = "Need your data elsewhere? I've added an 'Export' button at the top right of your dashboard so you can download all your prospects as a CSV file instantly.";
+      } else if (lowerInput.includes('contact') || lowerInput.includes('toggle')) {
+        aiResponseText = "I see you're using the new Contacted Toggle! This is a great way to keep your pipeline clean. Once you toggle a lead, it updates your Conversion Rate stat in real-time.";
+      } else if (lowerInput.includes('hello') || lowerInput.includes('hi')) {
+        aiResponseText = "Hello! I'm your Lead Intelligence Assistant. I've just been upgraded with new features to help you close clients faster. What can I explain today?";
       }
 
       const aiMessage = { id: Date.now() + 1, text: aiResponseText, sender: 'ai' };
       setMessages(prev => [...prev, aiMessage]);
       setIsTyping(false);
-    }, 1500);
+    }, 1200);
   };
 
   return (

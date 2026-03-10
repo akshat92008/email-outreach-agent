@@ -135,6 +135,9 @@ async function verifyAndEnrich(lead, targetUrl = null) {
             lead.phone = contactData.phone;
         }
 
+        if (!lead.history) lead.history = [];
+        lead.history.push({ event: 'Verification Completed', timestamp: new Date().toISOString() });
+
     } catch (globalError) {
         console.error("Global verifier error:", globalError);
     } finally {

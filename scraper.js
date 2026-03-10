@@ -67,18 +67,6 @@ async function searchBusinesses(niche, location) {
                 );
             });
 
-            if (!hasWebsite) {
-                const phone = await parent.$$eval('div.W4E79', divs => {
-                    const phoneRegex = /\+?[\d\s-]{10,}/;
-                    for (const div of divs) {
-                        const match = div.textContent.match(phoneRegex);
-                        if (match) return match[0];
-                    }
-                    return 'N/A';
-                }).catch(() => 'N/A');
-
-                const reviews = await parent.$eval('span.UY7F9', span => span.textContent.replace(/[()]/g, '').trim()).catch(() => '0');
-                
                 leads.push({
                     name,
                     niche,
@@ -86,11 +74,15 @@ async function searchBusinesses(niche, location) {
                     reviews,
                     city: location.split(',')[0].trim(),
                     country: location.split(',').pop().trim(),
-                    email: 'Pending Verification',
-                    facebook: 'Pending Verification',
-                    status: 'pending'
+                    email: null,
+                    facebook: null,
+                    status: 'pending',
+                    contacted_status: 'pending',
+                    score: Math.floor(Math.random() * 10) + 1, // Simulated initial score
+                    history: [
+                        { event: 'Lead Discovered', timestamp: new Date().toISOString() }
+                    ]
                 });
-            }
         }
         return leads;
     } finally {
