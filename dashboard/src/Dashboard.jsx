@@ -43,7 +43,7 @@ function Dashboard() {
       return;
     }
 
-    const GITHUB_TOKEN = import.meta.env.VITE_GITHUB_TOKEN || import.meta.env.Vite_github_token;
+    const GITHUB_TOKEN = import.meta.env.VITE_GITHUB_TOKEN;
     const REPO_OWNER = "akshat92008";
     const REPO_NAME = "email-outreach-agent";
     const WORKFLOW_ID = "scrape.yml";
