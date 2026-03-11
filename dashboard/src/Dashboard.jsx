@@ -144,14 +144,17 @@ function Dashboard() {
     return matchesSearch && !isHidden && matchesFilter;
   });
 
-  const contactedCount = leads.filter(l => l.contacted_status !== 'pending').length;
+  const contactedCount = leads.filter(l => l.status !== 'new' && l.status !== 'pending').length;
+
   const stats = {
     total: leads.length,
     highValue: leads.filter(l => (l.score || 0) >= 80).length,
     noWebsite: leads.filter(l => !l.has_website || l.has_website === 'No').length,
-    conversion: contactedCount > 0 ? ((contactedCount / leads.length) * 100).toFixed(1) : 0,
+    conversion: leads.length > 0 ? ((contactedCount / leads.length) * 100).toFixed(1) : 0,
     velocity: (leads.filter(l => {
-      const created = new Date(l.created_at);
+      if (!l.created_at) return false;
+      // Handle both Firestore Timestamp and regular Date strings
+      const created = l.created_at.toDate ? l.created_at.toDate() : new Date(l.created_at);
       const now = new Date();
       return (now - created) < 24 * 60 * 60 * 1000;
     }).length)
@@ -215,10 +218,10 @@ function Dashboard() {
             <div style={{ padding: '0.5rem', background: 'var(--primary)', borderRadius: '12px', boxShadow: '0 0 20px var(--primary-glow)' }}>
               <Users size={24} color="white" />
             </div>
-            <h1 style={{ margin: 0 }}>Lead Gen Pro <span style={{ color: 'var(--primary)', fontWeight: 400, opacity: 0.7 }}>V2.5</span></h1>
+            <h1 style={{ margin: 0 }}>Lead Gen Pro <span style={{ color: 'var(--primary)', fontWeight: 400, opacity: 0.7 }}>V2.6</span></h1>
           </div>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', fontWeight: 500 }}>
-            Unified Intelligence & Multi-Channel Outreach Pipeline <span style={{ fontSize: '0.7rem', opacity: 0.5, marginLeft: '1rem' }}>(Build: Mar 11, 11:15 AM)</span>
+            Unified Intelligence & Multi-Channel Outreach Pipeline <span style={{ fontSize: '0.7rem', opacity: 0.5, marginLeft: '1rem' }}>(Build: Mar 11, 11:45 AM)</span>
           </p>
         </div>
 

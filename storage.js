@@ -33,15 +33,15 @@ const csvFilePath = path.join(__dirname, 'leads.csv');
 const csvWriter = createCsvWriter({
     path: csvFilePath,
     header: [
-        {id: 'name', title: 'Business Name'},
-        {id: 'niche', title: 'Niche'},
-        {id: 'email', title: 'Email'},
-        {id: 'facebook', title: 'Facebook Page'},
-        {id: 'city', title: 'City'},
-        {id: 'country', title: 'Country'},
-        {id: 'phone', title: 'Phone'},
-        {id: 'reviews', title: 'Reviews'},
-        {id: 'status', title: 'Outreach Status'}
+        { id: 'name', title: 'Business Name' },
+        { id: 'niche', title: 'Niche' },
+        { id: 'email', title: 'Email' },
+        { id: 'facebook', title: 'Facebook Page' },
+        { id: 'city', title: 'City' },
+        { id: 'country', title: 'Country' },
+        { id: 'phone', title: 'Phone' },
+        { id: 'reviews', title: 'Reviews' },
+        { id: 'status', title: 'Outreach Status' }
     ],
     append: fs.existsSync(csvFilePath)
 });
@@ -68,6 +68,7 @@ async function saveLeads(leads) {
 
         // Sync to Firestore
         try {
+            console.log(`[FIREBASE] Starting sync for ${leads.length} leads...`);
             const batch = firestore.batch();
             leads.forEach((lead) => {
                 const docRef = firestore.collection('leads').doc();
@@ -78,9 +79,15 @@ async function saveLeads(leads) {
                 });
             });
             await batch.commit();
-            console.log(`Synced ${leads.length} leads to Firestore.`);
+            console.log(`[FIREBASE] ✅ Successfully synced ${leads.length} leads to Firestore.`);
         } catch (fsError) {
-            console.warn('Firestore sync failed (check if you are logged in or have FIREBASE_SERVICE_ACCOUNT secret set):', fsError.message);
+            console.error('[FIREBASE] ❌ Firestore sync failed!');
+            console.error('[FIREBASE] Error Code:', fsError.code);
+            console.error('[FIREBASE] Error Message:', fsError.message);
+            // Log full error for metadata diagnostics if it's a gRPC error
+            if (fsError.metadata) {
+                console.error('[FIREBASE] Error Metadata:', JSON.stringify(fsError.metadata, null, 2));
+            }
         }
 
     } catch (error) {
