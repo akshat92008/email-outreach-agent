@@ -5,7 +5,7 @@ import db from './firebase';
 import {
   Users, Send, Flame, PhoneCall, ExternalLink, Mail, Download, BarChart3, Search,
   TrendingUp, Clock, ArrowUpRight, TrendingDown, X, History, Instagram, Facebook,
-  Check, MessageCircle, Linkedin, Trash2, LayoutGrid, List, Activity
+  Check, MessageCircle, Linkedin, Trash2, LayoutGrid, List, Activity, XOctagon
 } from 'lucide-react';
 import Chatbot from './Chatbot';
 import PipelineBoard from './PipelineBoard';
@@ -251,10 +251,10 @@ function Dashboard() {
             <div style={{ padding: '0.5rem', background: 'var(--primary)', borderRadius: '12px', boxShadow: '0 0 20px var(--primary-glow)' }}>
               <Users size={24} color="white" />
             </div>
-            <h1 style={{ margin: 0 }}>Lead Gen Pro <span style={{ color: 'var(--primary)', fontWeight: 400, opacity: 0.7 }}>V2.7</span></h1>
+            <h1 style={{ margin: 0 }}>Lead Gen Pro <span style={{ color: 'var(--primary)', fontWeight: 400, opacity: 0.7 }}>V2.8</span></h1>
           </div>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', fontWeight: 500 }}>
-            Unified Intelligence & Multi-Channel Outreach Pipeline <span style={{ fontSize: '0.7rem', opacity: 0.5, marginLeft: '1rem' }}>(Build: Mar 11, 12:00 PM)</span>
+            Unified Intelligence & Multi-Channel Outreach Pipeline <span style={{ fontSize: '0.7rem', opacity: 0.5, marginLeft: '1rem' }}>(Build: Mar 11, 12:05 PM)</span>
           </p>
         </div>
 
