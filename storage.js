@@ -86,10 +86,24 @@ async function saveLeads(leads) {
         try {
             console.log(`[FIREBASE] Starting sync for ${leads.length} leads...`);
             const batch = firestore.batch();
+
             leads.forEach((lead) => {
+                // Sanitize data: Firestore does not allow 'undefined' values
+                const sanitizedLead = {};
+                Object.keys(lead).forEach(key => {
+                    const value = lead[key];
+                    if (value !== undefined) {
+                        sanitizedLead[key] = value;
+                    } else {
+                        // Provide defaults for critical missing AI fields
+                        if (key === 'opportunity_score' || key === 'score') sanitizedLead[key] = 0;
+                        else sanitizedLead[key] = null;
+                    }
+                });
+
                 const docRef = firestore.collection('leads').doc();
                 batch.set(docRef, {
-                    ...lead,
+                    ...sanitizedLead,
                     created_at: admin.firestore.FieldValue.serverTimestamp(),
                     updated_at: admin.firestore.FieldValue.serverTimestamp()
                 });
