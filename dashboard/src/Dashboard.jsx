@@ -9,8 +9,10 @@ import {
 import Chatbot from './Chatbot';
 import PipelineBoard from './PipelineBoard';
 import AnalyticsBoard from './AnalyticsBoard';
+import { useNavigate } from 'react-router-dom';
 
 function Dashboard() {
+  const navigate = useNavigate();
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -29,30 +31,39 @@ function Dashboard() {
       return;
     }
 
+    const GITHUB_TOKEN = import.meta.env.VITE_GITHUB_TOKEN;
+    const REPO_OWNER = "akshat92008";
+    const REPO_NAME = "email-outreach-agent";
+    const WORKFLOW_ID = "scrape.yml";
+
     setIsScanning(true);
     try {
-      // Use the project's own Cloud Function backend for secure dispatch
-      // The function is deployed at: https://us-central1-agent-4dfcc.cloudfunctions.net/api/leads/scan
-      const response = await fetch('https://us-central1-agent-4dfcc.cloudfunctions.net/api/leads/scan', {
+      if (!GITHUB_TOKEN) {
+        throw new Error("Missing GitHub Token. Please set VITE_GITHUB_TOKEN in GitHub Secrets and REDEPLOY.");
+      }
+
+      const response = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/workflows/${WORKFLOW_ID}/dispatches`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ niche: newNiche, location: newLocation })
+        headers: {
+          'Authorization': `token ${GITHUB_TOKEN}`,
+          'Accept': 'application/vnd.github.v3+json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ref: 'main',
+          inputs: { niche: newNiche, location: newLocation }
+        })
       });
 
-      const data = await response.json();
-
-      if (response.ok) {
+      if (response.status === 204) {
         alert(`🚀 Scan launched successfully for ${newNiche} in ${newLocation}! Results will appear in the dashboard soon.`);
       } else {
-        // If token is missing on backend, provide helpful error
-        if (data.error?.includes("GITHUB_TOKEN")) {
-          throw new Error("Cloud Engine Token not set. Please run the setup command provided by Antigravity.");
-        }
-        throw new Error(data.message || data.error || "Backend engine error");
+        const errData = await response.json();
+        throw new Error(errData.message || "GitHub API returned an error");
       }
     } catch (error) {
       console.error("Error triggering scan:", error);
-      alert(`⚠️ Cloud Engine Error: ${error.message}`);
+      alert(`⚠️ Error: ${error.message}`);
     } finally {
       setIsScanning(false);
     }
@@ -221,6 +232,9 @@ function Dashboard() {
           </div>
           <button className="btn btn-outline" style={{ color: 'var(--danger)', borderRadius: '14px' }} onClick={clearAllContacted}>
             <Trash2 size={18} />
+          </button>
+          <button className="btn btn-outline" style={{ border: '1px solid var(--primary)', color: 'var(--primary)', borderRadius: '14px' }} onClick={() => navigate('/outreach')}>
+            <Send size={18} /> Launch Outreach
           </button>
           <button className="btn btn-primary" style={{ borderRadius: '14px' }} onClick={exportLeads}>
             <Download size={18} /> Export
