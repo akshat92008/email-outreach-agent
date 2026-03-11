@@ -6,7 +6,7 @@ import {
   Users, Send, Flame, PhoneCall, ExternalLink, Mail, Download, BarChart3, Search,
   TrendingUp, Clock, ArrowUpRight, TrendingDown, X, History, Instagram, Facebook,
   Check, MessageCircle, Linkedin, Trash2, LayoutGrid, List, Activity, XOctagon,
-  Zap, Shield, Globe, Cpu
+  Zap, Shield, Globe, Cpu, Copy
 } from 'lucide-react';
 import Chatbot from './Chatbot';
 import PipelineBoard from './PipelineBoard';
@@ -601,7 +601,7 @@ function Dashboard() {
 
                           {(isReal(lead.whatsapp) || lead.whatsapp_ready_number) ? (
                             <a
-                              href={`https://wa.me/${lead.whatsapp || lead.whatsapp_ready_number}?text=${encodeURIComponent(lead.outreach_email || 'Hi!')}`}
+                              href={`https://wa.me/${(lead.whatsapp || lead.whatsapp_ready_number).replace(/[^\d]/g, '')}?text=${encodeURIComponent(lead.outreach_email || 'Hi!')}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               onClick={(e) => { e.stopPropagation(); copyToClipboard(lead.outreach_email || '', 'WhatsApp'); }}
@@ -714,29 +714,64 @@ function Dashboard() {
 
               {/* Outreach Drafts Display */}
               <div style={{ marginBottom: '2rem' }}>
-                <h3 style={{ fontSize: '1rem', marginBottom: '1rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>AI Generated Outreach</h3>
-                <div style={{ display: 'grid', gap: '1rem' }}>
-                  <div className="glass-card" style={{ padding: '1rem', background: 'rgba(34, 211, 238, 0.05)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', color: 'var(--primary)' }}>
-                      <Mail size={16} /> <span style={{ fontSize: '0.8rem', fontWeight: 700 }}>EMAIL DRAFT</span>
+                <h3 style={{ fontSize: '1.2rem', marginBottom: '1.25rem', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.75rem', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '0.75rem' }}>
+                  <Zap size={20} color="var(--primary)" /> AI Generated Outreach
+                </h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                  {/* Email Card */}
+                  <div className="glass-card" style={{ padding: '0', background: 'rgba(34, 211, 238, 0.03)', border: '1px solid rgba(34, 211, 238, 0.2)', overflow: 'hidden' }}>
+                    <div style={{ padding: '1rem 1.5rem', background: 'rgba(34, 211, 238, 0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(34, 211, 238, 0.1)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--primary)', fontWeight: 800, letterSpacing: '0.05em', fontSize: '0.85rem' }}>
+                        <Mail size={16} /> HIGH-CONVERTING EMAIL
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button onClick={() => copyToClipboard(selectedLead.outreach_email, 'Email')} className="btn-outline" style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem', borderColor: 'var(--primary)', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}><Copy size={14} /> Copy</button>
+                        {isReal(selectedLead.email) && (
+                          <a href={`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(selectedLead.email)}&su=${encodeURIComponent(selectedLead.outreach_email_subject || 'Partnership Inquiry')}&body=${encodeURIComponent(selectedLead.outreach_email || '')}`} target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.4rem', border: 'none', borderRadius: '4px' }}>
+                            <Send size={14} /> Send
+                          </a>
+                        )}
+                      </div>
                     </div>
-                    {selectedLead.outreach_email_subject && <div style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.5rem' }}>Subject: {selectedLead.outreach_email_subject}</div>}
-                    <pre style={{ whiteSpace: 'pre-wrap', fontSize: '0.85rem', fontFamily: 'inherit', color: 'var(--text-main)', opacity: 0.9 }}>{selectedLead.outreach_email || 'No email generated yet.'}</pre>
+                    <div style={{ padding: '1.5rem' }}>
+                      {selectedLead.outreach_email_subject && <div style={{ fontWeight: 700, fontSize: '0.95rem', marginBottom: '1rem', color: 'var(--text-main)' }}>Subject: <span style={{ fontWeight: 400, opacity: 0.9 }}>{selectedLead.outreach_email_subject}</span></div>}
+                      <pre style={{ whiteSpace: 'pre-wrap', fontSize: '0.9rem', fontFamily: 'inherit', color: 'var(--text-muted)', lineHeight: '1.6', margin: 0 }}>{selectedLead.outreach_email || 'No email generated yet.'}</pre>
+                    </div>
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                    <div className="glass-card" style={{ padding: '1rem', background: 'rgba(228, 64, 95, 0.05)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', color: '#E4405F' }}>
-                        <Instagram size={16} /> <span style={{ fontSize: '0.8rem', fontWeight: 700 }}>IG / FB MESSAGE</span>
+                  {/* Social Cards Grid */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
+                    {/* IG / FB Card */}
+                    <div className="glass-card" style={{ padding: '0', background: 'rgba(228, 64, 95, 0.03)', border: '1px solid rgba(228, 64, 95, 0.2)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                      <div style={{ padding: '1rem', background: 'rgba(228, 64, 95, 0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(228, 64, 95, 0.1)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#E4405F', fontWeight: 800, letterSpacing: '0.05em', fontSize: '0.8rem' }}>
+                          <Instagram size={16} /> INSTAGRAM / FB
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <button onClick={() => copyToClipboard(selectedLead.outreach_ig, 'Instagram')} className="btn-outline" style={{ padding: '0.3rem 0.6rem', fontSize: '0.7rem', borderColor: '#E4405F', color: '#E4405F', display: 'flex', alignItems: 'center', gap: '0.3rem' }}><Copy size={12} /> Copy</button>
+                        </div>
                       </div>
-                      <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-main)', opacity: 0.9 }}>{selectedLead.outreach_ig || 'No DM generated yet.'}</p>
+                      <div style={{ padding: '1.25rem', flex: 1 }}>
+                        <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-muted)', lineHeight: '1.5' }}>{selectedLead.outreach_ig || 'No DM generated yet.'}</p>
+                      </div>
                     </div>
 
-                    <div className="glass-card" style={{ padding: '1rem', background: 'rgba(37, 211, 102, 0.05)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', color: '#25D366' }}>
-                        <MessageCircle size={16} /> <span style={{ fontSize: '0.8rem', fontWeight: 700 }}>SMS TEXT</span>
+                    {/* SMS Card */}
+                    <div className="glass-card" style={{ padding: '0', background: 'rgba(37, 211, 102, 0.03)', border: '1px solid rgba(37, 211, 102, 0.2)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                      <div style={{ padding: '1rem', background: 'rgba(37, 211, 102, 0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(37, 211, 102, 0.1)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#25D366', fontWeight: 800, letterSpacing: '0.05em', fontSize: '0.8rem' }}>
+                          <MessageCircle size={16} /> DIRECT SMS
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <button onClick={() => copyToClipboard(selectedLead.outreach_sms, 'SMS')} className="btn-outline" style={{ padding: '0.3rem 0.6rem', fontSize: '0.7rem', borderColor: '#25D366', color: '#25D366', display: 'flex', alignItems: 'center', gap: '0.3rem' }}><Copy size={12} /> Copy</button>
+                          {isReal(selectedLead.phone) && (
+                            <a href={`https://wa.me/${selectedLead.phone.replace(/[^\d]/g, '')}?text=${encodeURIComponent(selectedLead.outreach_sms || '')}`} target="_blank" rel="noopener noreferrer" style={{ padding: '0.3rem 0.6rem', fontSize: '0.7rem', backgroundColor: '#25D366', color: '#fff', textDecoration: 'none', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '0.3rem' }}><Send size={12} /> Send</a>
+                          )}
+                        </div>
                       </div>
-                      <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-main)', opacity: 0.9 }}>{selectedLead.outreach_sms || 'No SMS generated yet.'}</p>
+                      <div style={{ padding: '1.25rem', flex: 1 }}>
+                        <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-muted)', lineHeight: '1.5' }}>{selectedLead.outreach_sms || 'No SMS generated yet.'}</p>
+                      </div>
                     </div>
                   </div>
                 </div>
