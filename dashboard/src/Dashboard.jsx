@@ -200,6 +200,13 @@ function Dashboard() {
     return { label: 'LOW OPPORTUNITY', class: 'badge-priority-low' };
   };
 
+  const formatWhatsAppNumber = (numStr) => {
+    if (!numStr) return '';
+    let cleaned = String(numStr).replace(/[^\d]/g, '');
+    if (cleaned.length === 10) cleaned = '1' + cleaned; // Assume US/Canada if exactly 10 digits
+    return cleaned;
+  };
+
   const updateLeadStatus = async (id, newStatus) => {
     try {
       const leadRef = doc(db, 'leads', id);
@@ -601,7 +608,7 @@ function Dashboard() {
 
                           {(isReal(lead.whatsapp) || lead.whatsapp_ready_number) ? (
                             <a
-                              href={`https://wa.me/${(lead.whatsapp || lead.whatsapp_ready_number).replace(/[^\d]/g, '')}?text=${encodeURIComponent(lead.outreach_email || 'Hi!')}`}
+                              href={`https://wa.me/${formatWhatsAppNumber(lead.whatsapp || lead.whatsapp_ready_number)}?text=${encodeURIComponent(lead.outreach_email || 'Hi!')}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               onClick={(e) => { e.stopPropagation(); copyToClipboard(lead.outreach_email || '', 'WhatsApp'); }}
@@ -765,7 +772,7 @@ function Dashboard() {
                         <div style={{ display: 'flex', gap: '0.5rem' }}>
                           <button onClick={() => copyToClipboard(selectedLead.outreach_sms, 'SMS')} className="btn-outline" style={{ padding: '0.3rem 0.6rem', fontSize: '0.7rem', borderColor: '#25D366', color: '#25D366', display: 'flex', alignItems: 'center', gap: '0.3rem' }}><Copy size={12} /> Copy</button>
                           {isReal(selectedLead.phone) && (
-                            <a href={`https://wa.me/${selectedLead.phone.replace(/[^\d]/g, '')}?text=${encodeURIComponent(selectedLead.outreach_sms || '')}`} target="_blank" rel="noopener noreferrer" style={{ padding: '0.3rem 0.6rem', fontSize: '0.7rem', backgroundColor: '#25D366', color: '#fff', textDecoration: 'none', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '0.3rem' }}><Send size={12} /> Send</a>
+                            <a href={`https://wa.me/${formatWhatsAppNumber(selectedLead.phone)}?text=${encodeURIComponent(selectedLead.outreach_sms || '')}`} target="_blank" rel="noopener noreferrer" style={{ padding: '0.3rem 0.6rem', fontSize: '0.7rem', backgroundColor: '#25D366', color: '#fff', textDecoration: 'none', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '0.3rem' }}><Send size={12} /> Send</a>
                           )}
                         </div>
                       </div>
