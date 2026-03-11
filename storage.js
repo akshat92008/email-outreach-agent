@@ -56,11 +56,27 @@ async function saveLeads(leads) {
         // Save to SQLite
         const insert = db.prepare(`
             INSERT INTO leads (name, niche, email, facebook, city, country, phone, reviews, score, outreach_message, contacted_status)
-            VALUES (@name, @niche, @email, @facebook, @city, @country, @phone, @reviews, @score, @outreach_message, @status)
+            VALUES (@name, @niche, @email, @facebook, @city, @country, @phone, @reviews, @score, @outreach_email, @status)
         `);
 
         const insertMany = db.transaction((leads) => {
-            for (const lead of leads) insert.run(lead);
+            for (const lead of leads) {
+                // Map object properties to SQL parameters to avoid Missing Parameter errors
+                const params = {
+                    name: lead.name || '',
+                    niche: lead.niche || '',
+                    email: lead.email || '',
+                    facebook: lead.facebook || '',
+                    city: lead.city || '',
+                    country: lead.country || '',
+                    phone: lead.phone || '',
+                    reviews: String(lead.reviews || '0'),
+                    score: lead.score || 0,
+                    outreach_email: lead.outreach_email || '',
+                    status: lead.status || 'new'
+                };
+                insert.run(params);
+            }
         });
 
         insertMany(leads);
