@@ -429,309 +429,313 @@ function Dashboard() {
               Follow-up sequences for day 3, 7, and 14 are automated and will pause instantly upon receipt of intent-positive replies.
             </div>
           </div>
-
-          {/* Global Filters */}
-          <div style={{ display: 'flex', gap: '1rem', marginBottom: '2.5rem', alignItems: 'center' }}>
-            <TrendingUp size={18} color="var(--primary)" />
-            <div style={{ display: 'flex', gap: '0.6rem' }}>
-              <button onClick={() => setActiveFilter('all')} className={`btn btn-outline ${activeFilter === 'all' ? 'active-view' : ''}`} style={{ padding: '0.5rem 1.25rem', borderRadius: '30px', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Master List
-              </button>
-              <button onClick={() => setActiveFilter('high_value')} className={`btn btn-outline ${activeFilter === 'high_value' ? 'active-view' : ''}`} style={{ padding: '0.5rem 1.25rem', borderRadius: '30px', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                High Intent Only
-              </button>
-              <button onClick={() => setActiveFilter('no_website')} className={`btn btn-outline ${activeFilter === 'no_website' ? 'active-view' : ''}`} style={{ padding: '0.5rem 1.25rem', borderRadius: '30px', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Gap Analysis (No Web)
-              </button>
-            </div>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 350px', gap: '2rem' }}>
-            <AnalyticsBoard leads={leads} />
-            <OpportunityHeatmap leads={leads} />
-          </div>
-
-          <div className="card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <h2>CRM Pipeline</h2>
-
-              <div style={{ display: 'flex', gap: '0.5rem', backgroundColor: 'var(--bg-color)', padding: '0.25rem', borderRadius: '8px' }}>
-                <button
-                  className={`btn-outline ${viewMode === 'pipeline' ? 'active-view' : ''}`}
-                  onClick={() => setViewMode('pipeline')}
-                  style={{ border: 'none', backgroundColor: viewMode === 'pipeline' ? 'var(--card-bg)' : 'transparent', boxShadow: viewMode === 'pipeline' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}>
-                  <LayoutGrid size={18} /> Board
-                </button>
-                <button
-                  className={`btn-outline ${viewMode === 'list' ? 'active-view' : ''}`}
-                  onClick={() => setViewMode('list')}
-                  style={{ border: 'none', backgroundColor: viewMode === 'list' ? 'var(--card-bg)' : 'transparent', boxShadow: viewMode === 'list' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}>
-                  <List size={18} /> List
-                </button>
-              </div>
-            </div>
-
-            {viewMode === 'pipeline' ? (
-              <PipelineBoard
-                leads={filteredLeads}
-                updateLeadStatus={updateLeadStatus}
-                setSelectedLead={setSelectedLead}
-              />
-            ) : (
-              <div style={{ overflowX: 'auto' }}>
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Business Name</th>
-                      <th>AI Score</th>
-                      <th>Location</th>
-                      <th>Outreach</th>
-                      <th>Pipeline Stage</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredLeads.map(lead => {
-                      const priority = getPriority(lead.score || 0);
-                      // Helper to check if a value is real or a placeholder
-                      const isReal = (val) => val && val !== 'Pending Verification' && val !== 'N/A';
-
-                      return (
-                        <tr key={lead.id}>
-                          <td>
-                            <div
-                              style={{ fontWeight: 600, cursor: 'pointer', color: 'var(--primary)' }}
-                              onClick={() => setSelectedLead(lead)}
-                              title="View History"
-                            >
-                              {lead.name}
-                            </div>
-                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
-                              <span style={{ color: 'var(--accent)', fontWeight: 700 }}>AI: {lead.primary_gap || 'Analyzing...'}</span>
-                              {lead.lost_customers && <span style={{ opacity: 0.6 }}>• Potential Loss: {lead.lost_customers}</span>}
-                            </div>
-                          </td>
-                          <td>
-                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                              <span className={`badge ${priority.class}`}>
-                                {priority.label}
-                              </span>
-                              <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', marginTop: '4px' }}>
-                                CORE SCORE: {lead.score || 0}%
-                              </span>
-                            </div>
-                          </td>
-                          <td>{lead.city}, {lead.country}</td>
-                          <td>
-                            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-                              {isReal(lead.phone) ? (
-                                <a href={`tel:${lead.phone.replace(/[^0-9+]/g, '')}`} title="Call Lead">
-                                  <PhoneCall size={16} style={{ cursor: 'pointer', color: 'var(--primary)' }} />
-                                </a>
-                              ) : (
-                                <span title="Phone Unavailable">
-                                  <PhoneCall size={16} style={{ color: 'var(--border)', opacity: 0.5 }} />
-                                </span>
-                              )}
-
-                              {isReal(lead.email) ? (
-                                <a
-                                  href={`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(lead.email)}&su=${encodeURIComponent('Partnership Inquiry')}&body=${encodeURIComponent(lead.outreach_email || 'Hi, I noticed your business...')}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  title="Email Lead via Gmail"
-                                >
-                                  <Mail size={16} style={{ cursor: 'pointer', color: 'var(--primary)' }} />
-                                </a>
-                              ) : (
-                                <span title="Email Unavailable">
-                                  <Mail size={16} style={{ color: 'var(--border)', opacity: 0.5 }} />
-                                </span>
-                              )}
-
-                              {isReal(lead.facebook) ? (
-                                <a
-                                  href={lead.facebook.includes('m.me') ? lead.facebook : `https://m.me/${lead.facebook.split('/').filter(Boolean).pop()}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  onClick={(e) => { e.stopPropagation(); copyToClipboard(lead.outreach_email || '', 'Facebook'); }}
-                                  title="Message on FB (Auto-copy Message)"
-                                >
-                                  <Facebook size={16} style={{ cursor: 'pointer', color: '#1877F2' }} />
-                                </a>
-                              ) : (
-                                <span title="Facebook Unavailable">
-                                  <Facebook size={16} style={{ color: 'var(--border)', opacity: 0.5 }} />
-                                </span>
-                              )}
-
-                              {isReal(lead.instagram) ? (
-                                <a
-                                  href={lead.instagram}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  onClick={(e) => { e.stopPropagation(); copyToClipboard(lead.outreach_email || '', 'Instagram'); }}
-                                  title="Message on Instagram (Auto-copy Message)"
-                                >
-                                  <Instagram size={16} style={{ cursor: 'pointer', color: '#E4405F' }} />
-                                </a>
-                              ) : (
-                                <span title="Instagram Unavailable">
-                                  <Instagram size={16} style={{ color: 'var(--border)', opacity: 0.5 }} />
-                                </span>
-                              )}
-
-                              {isReal(lead.linkedin) ? (
-                                <a
-                                  href={lead.linkedin}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  onClick={(e) => { e.stopPropagation(); copyToClipboard(lead.outreach_email || '', 'LinkedIn'); }}
-                                  title="Connect on LinkedIn (Auto-copy Message)"
-                                >
-                                  <Linkedin size={16} style={{ cursor: 'pointer', color: '#0A66C2' }} />
-                                </a>
-                              ) : (
-                                <span title="LinkedIn Unavailable">
-                                  <Linkedin size={16} style={{ color: 'var(--border)', opacity: 0.5 }} />
-                                </span>
-                              )}
-
-                              {(isReal(lead.whatsapp) || lead.whatsapp_ready_number) ? (
-                                <a
-                                  href={`https://wa.me/${lead.whatsapp || lead.whatsapp_ready_number}?text=${encodeURIComponent(lead.outreach_email || 'Hi!')}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  onClick={(e) => { e.stopPropagation(); copyToClipboard(lead.outreach_email || '', 'WhatsApp'); }}
-                                  title="Message on WhatsApp (Auto-copy Message)"
-                                >
-                                  <MessageCircle size={16} style={{ cursor: 'pointer', color: '#25D366' }} />
-                                </a>
-                              ) : (
-                                <span title="WhatsApp Unavailable">
-                                  <MessageCircle size={16} style={{ color: 'var(--border)', opacity: 0.5 }} />
-                                </span>
-                              )}
-                            </div>
-                            {copyStatus && (
-                              <div style={{ position: 'fixed', bottom: '20px', left: '50%', transform: 'translateX(-50%)', backgroundColor: 'var(--success)', color: 'white', padding: '0.5rem 1rem', borderRadius: '8px', zIndex: 1001, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                <Check size={16} /> Outreach message copied for {copyStatus}!
-                              </div>
-                            )}
-                          </td>
-                          <td>
-                            <select
-                              value={lead.status}
-                              onChange={(e) => updateLeadStatus(lead.id, e.target.value)}
-                              className="pipeline-select"
-                              style={{ padding: '0.3rem', borderRadius: '4px', border: '1px solid var(--border)' }}
-                            >
-                              <option value="new">New Lead</option>
-                              <option value="contacted">Contacted</option>
-                              <option value="replied">Replied</option>
-                              <option value="demo_booked">Demo Booked</option>
-                              <option value="closed">Closed</option>
-                              <option value="lost">Lost</option>
-                            </select>
-                          </td>
-                          <td>
-                            <div style={{ display: 'flex', gap: '0.5rem' }}>
-                              <a
-                                href={`https://www.google.com/search?q=${encodeURIComponent(lead.name + ' ' + (lead.city || ''))}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="btn-outline"
-                                style={{ padding: '0.4rem', borderRadius: '4px', display: 'flex', alignItems: 'center' }}
-                                title="Search Business on Web"
-                              >
-                                <Search size={16} />
-                              </a>
-                              {lead.original_website && (
-                                <a
-                                  href={lead.original_website}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="btn-outline"
-                                  style={{ padding: '0.4rem', borderRadius: '4px', display: 'flex', alignItems: 'center', borderColor: 'var(--accent)', color: 'var(--accent)' }}
-                                  title="Visit Website"
-                                >
-                                  <ExternalLink size={16} />
-                                </a>
-                              )}
-                              <button
-                                className="btn-outline"
-                                style={{ padding: '0.4rem', borderRadius: '4px', cursor: 'pointer', borderColor: '#fca5a5', color: '#ef4444' }}
-                                onClick={(e) => { e.stopPropagation(); deleteLead(lead.id, lead.name); }}
-                                title="Delete Lead Permanently"
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-
-          {/* Lead History Modal */}
-          {selectedLead && (
-            <div className="modal-overlay" onClick={() => setSelectedLead(null)}>
-              <div className="modal-content" onClick={e => e.stopPropagation()}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
-                  <h2 style={{ margin: 0 }}>{selectedLead.name}</h2>
-                  <button onClick={() => setSelectedLead(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
-                    <X size={24} />
-                  </button>
-                </div>
-
-                <div className="grid-cols-2" style={{ marginBottom: '2rem', gap: '1rem' }}>
-                  <div className="glass-card" style={{ padding: '1rem' }}>
-                    <div className="label" style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>PRIMARY GAP</div>
-                    <div style={{ fontSize: '1.1rem', color: 'var(--accent)', fontWeight: 700 }}>{selectedLead.primary_gap || 'No Gap Detected'}</div>
-                  </div>
-                  <div className="glass-card" style={{ padding: '1rem' }}>
-                    <div className="label" style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>OPPORTUNITY SCORE</div>
-                    <div style={{ fontSize: '1.1rem', color: 'var(--success)', fontWeight: 700 }}>{selectedLead.opportunity_score || 0}%</div>
-                  </div>
-                </div>
-
-                <div className="glass-card" style={{ padding: '1.5rem', marginBottom: '2rem', border: '1px solid var(--primary-glow)' }}>
-                  <div className="label" style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>AI INSIGHT</div>
-                  <p style={{ margin: 0, fontSize: '1rem', lineHeight: 1.5, color: 'var(--text-main)' }}>{selectedLead.opportunity_insight || 'Running analysis...'}</p>
-                  {selectedLead.lost_customers && (
-                    <div style={{ marginTop: '1rem', padding: '0.5rem 1rem', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', borderRadius: '8px', fontSize: '0.9rem', fontWeight: 600 }}>
-                      ⚠️ Estimated Lost Customers: {selectedLead.lost_customers} / mo
-                    </div>
-                  )}
-                </div>
-
-                <h3>Activity Timeline</h3>
-                <div className="timeline">
-                  {(selectedLead.history || [
-                    { event: 'Lead Discovered', timestamp: selectedLead.created_at }
-                  ]).map((entry, idx) => (
-                    <div className="timeline-item" key={idx}>
-                      <div className="timeline-dot"></div>
-                      <div className="timeline-date">{new Date(entry.timestamp).toLocaleString()}</div>
-                      <div className="timeline-event">{entry.event}</div>
-                    </div>
-                  ))}
-                </div>
-
-                <button className="btn btn-primary" style={{ width: '100%' }} onClick={() => setSelectedLead(null)}>
-                  Close Insights
-                </button>
-              </div>
-            </div>
-          )}
-
-          <Chatbot />
         </div>
-        );
+      </div>
+
+      {/* Global Filters */}
+      <div style={{ display: 'flex', gap: '1rem', marginBottom: '2.5rem', alignItems: 'center' }}>
+        <TrendingUp size={18} color="var(--primary)" />
+        <div style={{ display: 'flex', gap: '0.6rem' }}>
+          <button onClick={() => setActiveFilter('all')} className={`btn btn-outline ${activeFilter === 'all' ? 'active-view' : ''}`} style={{ padding: '0.5rem 1.25rem', borderRadius: '30px', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            Master List
+          </button>
+          <button onClick={() => setActiveFilter('high_value')} className={`btn btn-outline ${activeFilter === 'high_value' ? 'active-view' : ''}`} style={{ padding: '0.5rem 1.25rem', borderRadius: '30px', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            High Intent Only
+          </button>
+          <button onClick={() => setActiveFilter('no_website')} className={`btn btn-outline ${activeFilter === 'no_website' ? 'active-view' : ''}`} style={{ padding: '0.5rem 1.25rem', borderRadius: '30px', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            Gap Analysis (No Web)
+          </button>
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 350px', gap: '2rem' }}>
+        <AnalyticsBoard leads={leads} />
+        <OpportunityHeatmap leads={leads} />
+      </div>
+
+      <div className="card">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+          <h2>CRM Pipeline</h2>
+
+          <div style={{ display: 'flex', gap: '0.5rem', backgroundColor: 'var(--bg-color)', padding: '0.25rem', borderRadius: '8px' }}>
+            <button
+              className={`btn-outline ${viewMode === 'pipeline' ? 'active-view' : ''}`}
+              onClick={() => setViewMode('pipeline')}
+              style={{ border: 'none', backgroundColor: viewMode === 'pipeline' ? 'var(--card-bg)' : 'transparent', boxShadow: viewMode === 'pipeline' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}>
+              <LayoutGrid size={18} /> Board
+            </button>
+            <button
+              className={`btn-outline ${viewMode === 'list' ? 'active-view' : ''}`}
+              onClick={() => setViewMode('list')}
+              style={{ border: 'none', backgroundColor: viewMode === 'list' ? 'var(--card-bg)' : 'transparent', boxShadow: viewMode === 'list' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}>
+              <List size={18} /> List
+            </button>
+          </div>
+        </div>
+
+        {viewMode === 'pipeline' ? (
+          <PipelineBoard
+            leads={filteredLeads}
+            updateLeadStatus={updateLeadStatus}
+            setSelectedLead={setSelectedLead}
+          />
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table>
+              <thead>
+                <tr>
+                  <th>Business Name</th>
+                  <th>AI Score</th>
+                  <th>Location</th>
+                  <th>Outreach</th>
+                  <th>Pipeline Stage</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredLeads.map(lead => {
+                  const priority = getPriority(lead.score || 0);
+                  // Helper to check if a value is real or a placeholder
+                  const isReal = (val) => val && val !== 'Pending Verification' && val !== 'N/A';
+
+                  return (
+                    <tr key={lead.id}>
+                      <td>
+                        <div
+                          style={{ fontWeight: 600, cursor: 'pointer', color: 'var(--primary)' }}
+                          onClick={() => setSelectedLead(lead)}
+                          title="View History"
+                        >
+                          {lead.name}
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
+                          <span style={{ color: 'var(--accent)', fontWeight: 700 }}>AI: {lead.primary_gap || 'Analyzing...'}</span>
+                          {lead.lost_customers && <span style={{ opacity: 0.6 }}>• Potential Loss: {lead.lost_customers}</span>}
+                        </div>
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                          <span className={`badge ${priority.class}`}>
+                            {priority.label}
+                          </span>
+                          <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', marginTop: '4px' }}>
+                            CORE SCORE: {lead.score || 0}%
+                          </span>
+                        </div>
+                      </td>
+                      <td>{lead.city}, {lead.country}</td>
+                      <td>
+                        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                          {isReal(lead.phone) ? (
+                            <a href={`tel:${lead.phone.replace(/[^0-9+]/g, '')}`} title="Call Lead">
+                              <PhoneCall size={16} style={{ cursor: 'pointer', color: 'var(--primary)' }} />
+                            </a>
+                          ) : (
+                            <span title="Phone Unavailable">
+                              <PhoneCall size={16} style={{ color: 'var(--border)', opacity: 0.5 }} />
+                            </span>
+                          )}
+
+                          {isReal(lead.email) ? (
+                            <a
+                              href={`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(lead.email)}&su=${encodeURIComponent('Partnership Inquiry')}&body=${encodeURIComponent(lead.outreach_email || 'Hi, I noticed your business...')}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              title="Email Lead via Gmail"
+                            >
+                              <Mail size={16} style={{ cursor: 'pointer', color: 'var(--primary)' }} />
+                            </a>
+                          ) : (
+                            <span title="Email Unavailable">
+                              <Mail size={16} style={{ color: 'var(--border)', opacity: 0.5 }} />
+                            </span>
+                          )}
+
+                          {isReal(lead.facebook) ? (
+                            <a
+                              href={lead.facebook.includes('m.me') ? lead.facebook : `https://m.me/${lead.facebook.split('/').filter(Boolean).pop()}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => { e.stopPropagation(); copyToClipboard(lead.outreach_email || '', 'Facebook'); }}
+                              title="Message on FB (Auto-copy Message)"
+                            >
+                              <Facebook size={16} style={{ cursor: 'pointer', color: '#1877F2' }} />
+                            </a>
+                          ) : (
+                            <span title="Facebook Unavailable">
+                              <Facebook size={16} style={{ color: 'var(--border)', opacity: 0.5 }} />
+                            </span>
+                          )}
+
+                          {isReal(lead.instagram) ? (
+                            <a
+                              href={lead.instagram}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => { e.stopPropagation(); copyToClipboard(lead.outreach_email || '', 'Instagram'); }}
+                              title="Message on Instagram (Auto-copy Message)"
+                            >
+                              <Instagram size={16} style={{ cursor: 'pointer', color: '#E4405F' }} />
+                            </a>
+                          ) : (
+                            <span title="Instagram Unavailable">
+                              <Instagram size={16} style={{ color: 'var(--border)', opacity: 0.5 }} />
+                            </span>
+                          )}
+
+                          {isReal(lead.linkedin) ? (
+                            <a
+                              href={lead.linkedin}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => { e.stopPropagation(); copyToClipboard(lead.outreach_email || '', 'LinkedIn'); }}
+                              title="Connect on LinkedIn (Auto-copy Message)"
+                            >
+                              <Linkedin size={16} style={{ cursor: 'pointer', color: '#0A66C2' }} />
+                            </a>
+                          ) : (
+                            <span title="LinkedIn Unavailable">
+                              <Linkedin size={16} style={{ color: 'var(--border)', opacity: 0.5 }} />
+                            </span>
+                          )}
+
+                          {(isReal(lead.whatsapp) || lead.whatsapp_ready_number) ? (
+                            <a
+                              href={`https://wa.me/${lead.whatsapp || lead.whatsapp_ready_number}?text=${encodeURIComponent(lead.outreach_email || 'Hi!')}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => { e.stopPropagation(); copyToClipboard(lead.outreach_email || '', 'WhatsApp'); }}
+                              title="Message on WhatsApp (Auto-copy Message)"
+                            >
+                              <MessageCircle size={16} style={{ cursor: 'pointer', color: '#25D366' }} />
+                            </a>
+                          ) : (
+                            <span title="WhatsApp Unavailable">
+                              <MessageCircle size={16} style={{ color: 'var(--border)', opacity: 0.5 }} />
+                            </span>
+                          )}
+                        </div>
+                        {copyStatus && (
+                          <div style={{ position: 'fixed', bottom: '20px', left: '50%', transform: 'translateX(-50%)', backgroundColor: 'var(--success)', color: 'white', padding: '0.5rem 1rem', borderRadius: '8px', zIndex: 1001, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <Check size={16} /> Outreach message copied for {copyStatus}!
+                          </div>
+                        )}
+                      </td>
+                      <td>
+                        <select
+                          value={lead.status}
+                          onChange={(e) => updateLeadStatus(lead.id, e.target.value)}
+                          className="pipeline-select"
+                          style={{ padding: '0.3rem', borderRadius: '4px', border: '1px solid var(--border)' }}
+                        >
+                          <option value="new">New Lead</option>
+                          <option value="contacted">Contacted</option>
+                          <option value="replied">Replied</option>
+                          <option value="demo_booked">Demo Booked</option>
+                          <option value="closed">Closed</option>
+                          <option value="lost">Lost</option>
+                        </select>
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <a
+                            href={`https://www.google.com/search?q=${encodeURIComponent(lead.name + ' ' + (lead.city || ''))}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn-outline"
+                            style={{ padding: '0.4rem', borderRadius: '4px', display: 'flex', alignItems: 'center' }}
+                            title="Search Business on Web"
+                          >
+                            <Search size={16} />
+                          </a>
+                          {lead.original_website && (
+                            <a
+                              href={lead.original_website}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="btn-outline"
+                              style={{ padding: '0.4rem', borderRadius: '4px', display: 'flex', alignItems: 'center', borderColor: 'var(--accent)', color: 'var(--accent)' }}
+                              title="Visit Website"
+                            >
+                              <ExternalLink size={16} />
+                            </a>
+                          )}
+                          <button
+                            className="btn-outline"
+                            style={{ padding: '0.4rem', borderRadius: '4px', cursor: 'pointer', borderColor: '#fca5a5', color: '#ef4444' }}
+                            onClick={(e) => { e.stopPropagation(); deleteLead(lead.id, lead.name); }}
+                            title="Delete Lead Permanently"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Lead History Modal */}
+      {
+        selectedLead && (
+          <div className="modal-overlay" onClick={() => setSelectedLead(null)}>
+            <div className="modal-content" onClick={e => e.stopPropagation()}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
+                <h2 style={{ margin: 0 }}>{selectedLead.name}</h2>
+                <button onClick={() => setSelectedLead(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                  <X size={24} />
+                </button>
+              </div>
+
+              <div className="grid-cols-2" style={{ marginBottom: '2rem', gap: '1rem' }}>
+                <div className="glass-card" style={{ padding: '1rem' }}>
+                  <div className="label" style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>PRIMARY GAP</div>
+                  <div style={{ fontSize: '1.1rem', color: 'var(--accent)', fontWeight: 700 }}>{selectedLead.primary_gap || 'No Gap Detected'}</div>
+                </div>
+                <div className="glass-card" style={{ padding: '1rem' }}>
+                  <div className="label" style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>OPPORTUNITY SCORE</div>
+                  <div style={{ fontSize: '1.1rem', color: 'var(--success)', fontWeight: 700 }}>{selectedLead.opportunity_score || 0}%</div>
+                </div>
+              </div>
+
+              <div className="glass-card" style={{ padding: '1.5rem', marginBottom: '2rem', border: '1px solid var(--primary-glow)' }}>
+                <div className="label" style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>AI INSIGHT</div>
+                <p style={{ margin: 0, fontSize: '1rem', lineHeight: 1.5, color: 'var(--text-main)' }}>{selectedLead.opportunity_insight || 'Running analysis...'}</p>
+                {selectedLead.lost_customers && (
+                  <div style={{ marginTop: '1rem', padding: '0.5rem 1rem', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', borderRadius: '8px', fontSize: '0.9rem', fontWeight: 600 }}>
+                    ⚠️ Estimated Lost Customers: {selectedLead.lost_customers} / mo
+                  </div>
+                )}
+              </div>
+
+              <h3>Activity Timeline</h3>
+              <div className="timeline">
+                {(selectedLead.history || [
+                  { event: 'Lead Discovered', timestamp: selectedLead.created_at }
+                ]).map((entry, idx) => (
+                  <div className="timeline-item" key={idx}>
+                    <div className="timeline-dot"></div>
+                    <div className="timeline-date">{new Date(entry.timestamp).toLocaleString()}</div>
+                    <div className="timeline-event">{entry.event}</div>
+                  </div>
+                ))}
+              </div>
+
+              <button className="btn btn-primary" style={{ width: '100%' }} onClick={() => setSelectedLead(null)}>
+                Close Insights
+              </button>
+            </div>
+          </div>
+        )
+      }
+
+      <Chatbot />
+    </div >
+  );
 }
 
-        export default Dashboard;
+export default Dashboard;
