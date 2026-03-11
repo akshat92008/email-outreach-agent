@@ -93,23 +93,46 @@ function Dashboard() {
     }
   };
 
-  const clearAllContacted = async () => {
-    const contactedLeads = leads.filter(l => l.contacted_status !== 'pending');
-    if (contactedLeads.length === 0) return;
+  const clearAllLeads = async () => {
+    if (leads.length === 0) return;
+    if (window.confirm(`⚠️ DANGER: Permanently delete ALL ${leads.length} leads in the database? This cannot be undone.`)) {
+      try {
+        setLoading(true);
+        // Delete in batches to avoid timeout issues if database is large
+        const batchSize = 100;
+        for (let i = 0; i < leads.length; i += batchSize) {
+          const chunk = leads.slice(i, i + batchSize);
+          await Promise.all(chunk.map(lead => deleteDoc(doc(db, "leads", lead.id))));
+        }
+        alert("Database wiped successfully. Dashboard is now empty.");
+      } catch (error) {
+        console.error("Error wiping database:", error);
+        alert("Error wiping database. See console for details.");
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
 
+  const clearAllContacted = async () => {
+    const contactedLeads = leads.filter(l => l.status !== 'new' && l.status !== 'pending');
+    if (contactedLeads.length === 0) {
+      alert("No contacted leads to delete.");
+      return;
+    }
     if (window.confirm(`Permanently delete ALL ${contactedLeads.length} contacted leads? This cannot be undone.`)) {
       try {
         for (const lead of contactedLeads) {
           await deleteDoc(doc(db, "leads", lead.id));
         }
       } catch (error) {
-        console.error("Error clearing leads:", error);
+        console.error("Error clearing contacted leads:", error);
       }
     }
   };
 
   const copyToClipboard = (text, type) => {
-    navigator.clipboard.writeText(text);
+    navigator.clipboard.writeText(text || '');
     setCopyStatus(type);
     setTimeout(() => setCopyStatus(null), 2000);
   };
@@ -118,10 +141,15 @@ function Dashboard() {
   useEffect(() => {
     const q = query(collection(db, "leads"), orderBy("created_at", "desc"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const leadsData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
+      const leadsData = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          // Harmonize status: if status is missing but contacted_status exists, use that
+          status: data.status || data.contacted_status || 'new'
+        };
+      });
       setLeads(leadsData);
       setLoading(false);
     }, (error) => {
@@ -133,12 +161,17 @@ function Dashboard() {
   }, []);
 
   const filteredLeads = leads.filter(l => {
-    const matchesSearch = (l.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (l.city || '').toLowerCase().includes(searchTerm.toLowerCase());
-    const isHidden = hideContacted && l.status !== 'new' && l.status !== 'pending';
+    const nameStr = (l.name || '').toLowerCase();
+    const cityStr = (l.city || '').toLowerCase();
+    const searchLow = searchTerm.toLowerCase();
+    const matchesSearch = nameStr.includes(searchLow) || cityStr.includes(searchLow);
+
+    // contacted status detection
+    const isContacted = l.status !== 'new' && l.status !== 'pending';
+    const isHidden = hideContacted && isContacted;
 
     let matchesFilter = true;
-    if (activeFilter === 'high_value') matchesFilter = l.score >= 75;
+    if (activeFilter === 'high_value') matchesFilter = (l.score || 0) >= 75;
     if (activeFilter === 'no_website') matchesFilter = !l.has_website || l.has_website === 'No';
 
     return matchesSearch && !isHidden && matchesFilter;
@@ -218,10 +251,10 @@ function Dashboard() {
             <div style={{ padding: '0.5rem', background: 'var(--primary)', borderRadius: '12px', boxShadow: '0 0 20px var(--primary-glow)' }}>
               <Users size={24} color="white" />
             </div>
-            <h1 style={{ margin: 0 }}>Lead Gen Pro <span style={{ color: 'var(--primary)', fontWeight: 400, opacity: 0.7 }}>V2.6</span></h1>
+            <h1 style={{ margin: 0 }}>Lead Gen Pro <span style={{ color: 'var(--primary)', fontWeight: 400, opacity: 0.7 }}>V2.7</span></h1>
           </div>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', fontWeight: 500 }}>
-            Unified Intelligence & Multi-Channel Outreach Pipeline <span style={{ fontSize: '0.7rem', opacity: 0.5, marginLeft: '1rem' }}>(Build: Mar 11, 11:45 AM)</span>
+            Unified Intelligence & Multi-Channel Outreach Pipeline <span style={{ fontSize: '0.7rem', opacity: 0.5, marginLeft: '1rem' }}>(Build: Mar 11, 12:00 PM)</span>
           </p>
         </div>
 
@@ -247,7 +280,20 @@ function Dashboard() {
               <span className="slider"></span>
             </label>
           </div>
-          <button className="btn btn-outline" style={{ color: 'var(--danger)', borderRadius: '14px' }} onClick={clearAllContacted}>
+          <button
+            className="btn btn-outline"
+            style={{ borderColor: 'var(--danger)', color: 'var(--danger)', borderRadius: '14px' }}
+            onClick={clearAllLeads}
+            title="Wipe Entire Database"
+          >
+            <XOctagon size={18} /> Reset Database
+          </button>
+          <button
+            className="btn btn-outline"
+            style={{ color: 'var(--danger)', borderRadius: '14px' }}
+            onClick={clearAllContacted}
+            title="Delete Contacted Leads"
+          >
             <Trash2 size={18} />
           </button>
           <button className="btn btn-outline" style={{ border: '1px solid var(--primary)', color: 'var(--primary)', borderRadius: '14px' }} onClick={() => navigate('/outreach')}>
