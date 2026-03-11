@@ -33,9 +33,9 @@ jobs:
           VITE_GITHUB_TOKEN: ${{ secrets.VITE_GITHUB_TOKEN }}
         run: npm run build
         
-      - name: Deploy to Firebase Hosting and Firestore
+      - name: Deploy to Firebase Hosting
         uses: w9jds/firebase-action@master
         with:
-          args: deploy --only hosting,firestore --project agent-4dfcc
+          args: deploy --only hosting --project agent-4dfcc
         env:
           GCP_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
