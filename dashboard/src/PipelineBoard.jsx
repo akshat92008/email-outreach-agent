@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import { Mail, PhoneCall, Linkedin, Instagram } from 'lucide-react';
 
 const STAGES = [
-    { id: 'new', label: 'Inbound', color: 'var(--primary)', icon: '📥' },
-    { id: 'contacted', label: 'Outreach', color: '#f39c12', icon: '✉️' },
-    { id: 'replied', label: 'Negotiations', color: '#3498db', icon: '💬' },
-    { id: 'demo_booked', label: 'Discovery', color: '#9b59b6', icon: '🎥' },
-    { id: 'closed', label: 'Won', color: 'var(--success)', icon: '🏆' },
-    { id: 'lost', label: 'Dormant', color: '#64748b', icon: '💤' }
+    { id: 'new', label: 'New Lead', color: 'var(--primary)', icon: '📥' },
+    { id: 'contacted', label: 'Contacted', color: '#f39c12', icon: '✉️' },
+    { id: 'replied', label: 'Replied', color: '#3498db', icon: '💬' },
+    { id: 'demo_booked', label: 'Demo Booked', color: '#9b59b6', icon: '🎥' },
+    { id: 'closed', label: 'Closed', color: 'var(--success)', icon: '🏆' },
+    { id: 'lost', label: 'Lost', color: '#64748b', icon: '💤' }
 ];
 
 export default function PipelineBoard({ leads, updateLeadStatus, setSelectedLead }) {
@@ -158,6 +158,21 @@ export default function PipelineBoard({ leads, updateLeadStatus, setSelectedLead
                                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 500 }}>
                                     {lead.niche} <span style={{ opacity: 0.4 }}>•</span> {lead.city}
                                 </div>
+
+                                {lead.primary_gap && (
+                                    <div style={{
+                                        fontSize: '0.65rem',
+                                        fontWeight: 700,
+                                        color: 'var(--accent)',
+                                        background: 'rgba(34, 211, 238, 0.05)',
+                                        padding: '4px 8px',
+                                        borderRadius: '6px',
+                                        border: '1px solid rgba(34, 211, 238, 0.2)',
+                                        marginTop: '2px'
+                                    }}>
+                                        AI: {lead.primary_gap}
+                                    </div>
+                                )}
 
                                 <div style={{
                                     display: 'flex',

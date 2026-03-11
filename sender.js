@@ -68,7 +68,7 @@ async function sendEmail(lead) {
     const db = getFirestore();
     const leadRef = db.collection('leads').doc(lead.id);
     await leadRef.update({
-        status: 'Contacted',
+        status: 'contacted',
         last_contacted: new Date().toISOString(),
         contact_channel: 'Email',
         history: require('firebase-admin/firestore').FieldValue.arrayUnion({
@@ -82,45 +82,98 @@ async function sendEmail(lead) {
 }
 
 /**
+ * Simulates sending an Instagram DM.
+ */
+async function sendInstagramDM(lead) {
+    const canSend = await checkDailyLimit('instagram');
+    if (!canSend) return false;
+
+    if (!lead.instagram) return false;
+
+    console.log(`[SENDER] 📸 Sending Instagram DM to ${lead.instagram} (${lead.name})...`);
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    await incrementDailyCount('instagram');
+
+    const db = getFirestore();
+    const leadRef = db.collection('leads').doc(lead.id);
+    await leadRef.update({
+        status: 'contacted',
+        last_contacted: new Date().toISOString(),
+        contact_channel: 'Instagram',
+        history: require('firebase-admin/firestore').FieldValue.arrayUnion({
+            event: 'Outreach Sent',
+            channel: 'Instagram',
+            timestamp: new Date().toISOString()
+        })
+    });
+
+    return true;
+}
+
+/**
+ * Simulates sending an SMS.
+ */
+async function sendSMS(lead) {
+    const canSend = await checkDailyLimit('sms');
+    if (!canSend) return false;
+
+    if (!lead.phone || lead.phone === 'N/A') return false;
+
+    console.log(`[SENDER] 💬 Sending SMS to ${lead.phone} (${lead.name})...`);
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    await incrementDailyCount('sms');
+
+    const db = getFirestore();
+    const leadRef = db.collection('leads').doc(lead.id);
+    await leadRef.update({
+        status: 'contacted',
+        last_contacted: new Date().toISOString(),
+        contact_channel: 'SMS',
+        history: require('firebase-admin/firestore').FieldValue.arrayUnion({
+            event: 'Outreach Sent',
+            channel: 'SMS',
+            timestamp: new Date().toISOString()
+        })
+    });
+
+    return true;
+}
+
+/**
  * Processes the queue of new leads and dispatches outreach based on value.
- * Only targets High and Medium value leads.
  */
 async function processOutreachQueue() {
     const db = getFirestore();
-    const now = new Date();
-
     console.log(`[QUEUE] Processing daily outreach queue...`);
 
-    // Fetch leads that are 'new' and have a high enough score to warrant automated outreach
     const leadsSnapshot = await db.collection('leads')
         .where('status', '==', 'new')
-        .where('score', '>=', 40) // Medium and High value only
+        .where('score', '>=', 50)
         .orderBy('score', 'desc')
-        .limit(20) // Batch size to prevent memory/timeout issues
+        .limit(20)
         .get();
-
-    if (leadsSnapshot.empty) {
-        console.log('[QUEUE] No eligible leads for outreach today.');
-        return;
-    }
 
     for (const doc of leadsSnapshot.docs) {
         const lead = doc.data();
-        lead.id = doc.id; // Attach Document ID for updates
+        lead.id = doc.id;
 
-        console.log(`[QUEUE] Evaluating ${lead.name} (Score: ${lead.score})`);
-
-        // Priority 1: Email
+        // Try Email first
         if (lead.email) {
             const success = await sendEmail(lead);
-            if (success) continue; // If sent email, move to next lead (don't spam all channels at once)
+            if (success) continue;
         }
 
-        // Priority 2: SMS (If we have a whatsapp/mobile ready number)
-        // Check for SMS logic...
-    }
+        // Try Instagram if Email fails/missing
+        if (lead.instagram) {
+            const success = await sendInstagramDM(lead);
+            if (success) continue;
+        }
 
-    console.log(`[QUEUE] Finished processing batch.`);
+        // Try SMS as last resort
+        if (lead.phone && lead.phone !== 'N/A') {
+            await sendSMS(lead);
+        }
+    }
 }
 
 /**
@@ -132,9 +185,9 @@ async function processFollowUps() {
 
     console.log(`[FOLLOW-UPS] Checking for scheduled follow-ups...`);
 
-    // Look for Contacted leads that haven't replied yet
+    // Look for Contacted leads that HAVEN'T replied yet
     const leadsSnapshot = await db.collection('leads')
-        .where('status', '==', 'Contacted')
+        .where('status', '==', 'contacted')
         .get();
 
     for (const doc of leadsSnapshot.docs) {

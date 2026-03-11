@@ -1,51 +1,36 @@
 /**
  * Calculates a lead score from 0-100 based on multiple factors.
  */
-function calculateLeadScore(lead, analysis = null) {
+function calculateLeadScore(lead, analysis = null, opportunityScore = 0) {
     let score = 0;
 
-    // 1. Website Status & Quality (Max 40 points)
-    if (!lead.has_website || lead.has_website === 'No') {
-        score += 40; // Perfect target: High priority for businesses with NO website
-    } else if (analysis) {
-        // If they have a website, we score based on how BAD it is (worse = better lead for us)
-        if (analysis.qualityScore < 40) score += 35; // Terrible website
-        else if (analysis.qualityScore < 70) score += 20; // Mediocre website
-        else score += 5; // Good website, harder to sell to
+    // 1. AI Opportunity Insight (Weight: 40%)
+    score += (opportunityScore * 0.4);
 
-        // Specific pain points give us better leverage
-        if (!analysis.hasMobileViewport) score += 10;
-        if (!analysis.hasBookingSystem) score += 15;
+    // 2. Website Status & Quality (Weight: 30%)
+    if (!lead.has_website || lead.has_website === 'No') {
+        score += 30; // High priority for businesses with NO website
+    } else if (analysis) {
+        if (analysis.qualityScore < 50) score += 20;
+        else if (analysis.qualityScore < 80) score += 10;
     }
 
-    // 2. Business Reputation (Max 30 points)
+    // 3. Business Value & Reputation (Weight: 30%)
     const reviews = parseInt(lead.reviews || 0);
     const rating = parseFloat(lead.rating || 0);
 
+    // High rating + high reviews = high trust = easy to sell to if digital presence is weak
     if (rating >= 4.0) score += 10;
-    if (reviews > 50) score += 20;
-    else if (reviews > 20) score += 10;
-    else if (reviews > 5) score += 5;
+    if (reviews > 100) score += 20;
+    else if (reviews > 30) score += 10;
 
-    // 3. Location & Niche (Max 30 points)
-    const premiumCountries = ['USA', 'UK', 'Canada', 'Australia', 'United Arab Emirates'];
-    if (lead.country && premiumCountries.some(c => lead.country.includes(c))) {
-        score += 15;
-    }
-
-    // Niche profitability (Simple heuristic)
-    const highValueNiches = ['Dentist', 'Lawyer', 'Plumbing', 'Real Estate', 'Roofing', 'Medical'];
-    if (lead.niche && highValueNiches.some(n => lead.niche.toLowerCase().includes(n.toLowerCase()))) {
-        score += 15;
-    }
-
-    return Math.min(100, score);
+    return Math.round(Math.min(100, score));
 }
 
 function getLeadLabel(score) {
-    if (score >= 75) return 'High Value';
-    if (score >= 40) return 'Medium Value';
-    return 'Low Value';
+    if (score >= 80) return 'High Opportunity';
+    if (score >= 50) return 'Medium Opportunity';
+    return 'Low Opportunity';
 }
 
 /**

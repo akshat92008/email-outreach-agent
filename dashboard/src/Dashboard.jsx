@@ -10,6 +10,7 @@ import {
 import Chatbot from './Chatbot';
 import PipelineBoard from './PipelineBoard';
 import AnalyticsBoard from './AnalyticsBoard';
+import OpportunityHeatmap from './OpportunityHeatmap';
 import { useNavigate } from 'react-router-dom';
 
 function Dashboard() {
@@ -183,10 +184,9 @@ function Dashboard() {
     total: leads.length,
     highValue: leads.filter(l => (l.score || 0) >= 80).length,
     noWebsite: leads.filter(l => !l.has_website || l.has_website === 'No').length,
-    conversion: leads.length > 0 ? ((contactedCount / leads.length) * 100).toFixed(1) : 0,
+    conversion: leads.length > 0 ? ((leads.filter(l => l.status !== 'new').length / leads.length) * 100).toFixed(1) : 0,
     velocity: (leads.filter(l => {
       if (!l.created_at) return false;
-      // Handle both Firestore Timestamp and regular Date strings
       const created = l.created_at.toDate ? l.created_at.toDate() : new Date(l.created_at);
       const now = new Date();
       return (now - created) < 24 * 60 * 60 * 1000;
@@ -194,9 +194,9 @@ function Dashboard() {
   };
 
   const getPriority = (score) => {
-    if (score >= 80) return { label: 'HIGH VALUE', class: 'badge-priority-high' };
-    if (score >= 50) return { label: 'MEDIUM VALUE', class: 'badge-priority-medium' };
-    return { label: 'LOW VALUE', class: 'badge-priority-low' };
+    if (score >= 80) return { label: 'HIGH OPPORTUNITY', class: 'badge-priority-high' };
+    if (score >= 50) return { label: 'MEDIUM OPPORTUNITY', class: 'badge-priority-medium' };
+    return { label: 'LOW OPPORTUNITY', class: 'badge-priority-low' };
   };
 
   const updateLeadStatus = async (id, newStatus) => {
@@ -389,7 +389,10 @@ function Dashboard() {
         </div>
       </div>
 
-      <AnalyticsBoard leads={leads} />
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 350px', gap: '2rem' }}>
+        <AnalyticsBoard leads={leads} />
+        <OpportunityHeatmap leads={leads} />
+      </div>
 
       <div className="card">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
@@ -446,19 +449,20 @@ function Dashboard() {
                         >
                           {lead.name}
                         </div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          {lead.niche}
-                          {lead.has_website === false ? (
-                            <span style={{ fontSize: '0.65rem', padding: '1px 4px', backgroundColor: '#fee2e2', color: '#dc2626', borderRadius: '4px', fontWeight: 700 }}>NO WEBSITE</span>
-                          ) : lead.original_website ? (
-                            <span style={{ fontSize: '0.65rem', padding: '1px 4px', backgroundColor: '#fef3c7', color: '#d97706', borderRadius: '4px', fontWeight: 700 }}>DIRECTORY ONLY</span>
-                          ) : null}
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
+                          <span style={{ color: 'var(--accent)', fontWeight: 700 }}>AI: {lead.primary_gap || 'Analyzing...'}</span>
+                          {lead.lost_customers && <span style={{ opacity: 0.6 }}>• Potential Loss: {lead.lost_customers}</span>}
                         </div>
                       </td>
                       <td>
-                        <span className={`badge ${priority.class}`}>
-                          {priority.label}
-                        </span>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                          <span className={`badge ${priority.class}`}>
+                            {priority.label}
+                          </span>
+                          <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', marginTop: '4px' }}>
+                            CORE SCORE: {lead.score || 0}%
+                          </span>
+                        </div>
                       </td>
                       <td>{lead.city}, {lead.country}</td>
                       <td>
@@ -475,7 +479,7 @@ function Dashboard() {
 
                           {isReal(lead.email) ? (
                             <a
-                              href={`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(lead.email)}&su=${encodeURIComponent('Partnership Inquiry')}&body=${encodeURIComponent(lead.outreach_message || 'Hi, I noticed your business...')}`}
+                              href={`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(lead.email)}&su=${encodeURIComponent('Partnership Inquiry')}&body=${encodeURIComponent(lead.outreach_email || 'Hi, I noticed your business...')}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               title="Email Lead via Gmail"
@@ -493,7 +497,7 @@ function Dashboard() {
                               href={lead.facebook.includes('m.me') ? lead.facebook : `https://m.me/${lead.facebook.split('/').filter(Boolean).pop()}`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              onClick={(e) => { e.stopPropagation(); copyToClipboard(lead.outreach_message || '', 'Facebook'); }}
+                              onClick={(e) => { e.stopPropagation(); copyToClipboard(lead.outreach_email || '', 'Facebook'); }}
                               title="Message on FB (Auto-copy Message)"
                             >
                               <Facebook size={16} style={{ cursor: 'pointer', color: '#1877F2' }} />
@@ -509,7 +513,7 @@ function Dashboard() {
                               href={lead.instagram}
                               target="_blank"
                               rel="noopener noreferrer"
-                              onClick={(e) => { e.stopPropagation(); copyToClipboard(lead.outreach_message || '', 'Instagram'); }}
+                              onClick={(e) => { e.stopPropagation(); copyToClipboard(lead.outreach_email || '', 'Instagram'); }}
                               title="Message on Instagram (Auto-copy Message)"
                             >
                               <Instagram size={16} style={{ cursor: 'pointer', color: '#E4405F' }} />
@@ -525,7 +529,7 @@ function Dashboard() {
                               href={lead.linkedin}
                               target="_blank"
                               rel="noopener noreferrer"
-                              onClick={(e) => { e.stopPropagation(); copyToClipboard(lead.outreach_message || '', 'LinkedIn'); }}
+                              onClick={(e) => { e.stopPropagation(); copyToClipboard(lead.outreach_email || '', 'LinkedIn'); }}
                               title="Connect on LinkedIn (Auto-copy Message)"
                             >
                               <Linkedin size={16} style={{ cursor: 'pointer', color: '#0A66C2' }} />
@@ -538,10 +542,10 @@ function Dashboard() {
 
                           {(isReal(lead.whatsapp) || lead.whatsapp_ready_number) ? (
                             <a
-                              href={`https://wa.me/${lead.whatsapp || lead.whatsapp_ready_number}?text=${encodeURIComponent(lead.outreach_message || 'Hi!')}`}
+                              href={`https://wa.me/${lead.whatsapp || lead.whatsapp_ready_number}?text=${encodeURIComponent(lead.outreach_email || 'Hi!')}`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              onClick={(e) => { e.stopPropagation(); copyToClipboard(lead.outreach_message || '', 'WhatsApp'); }}
+                              onClick={(e) => { e.stopPropagation(); copyToClipboard(lead.outreach_email || '', 'WhatsApp'); }}
                               title="Message on WhatsApp (Auto-copy Message)"
                             >
                               <MessageCircle size={16} style={{ cursor: 'pointer', color: '#25D366' }} />
@@ -560,17 +564,17 @@ function Dashboard() {
                       </td>
                       <td>
                         <select
-                          value={lead.contacted_status}
+                          value={lead.status}
                           onChange={(e) => updateLeadStatus(lead.id, e.target.value)}
                           className="pipeline-select"
                           style={{ padding: '0.3rem', borderRadius: '4px', border: '1px solid var(--border)' }}
                         >
-                          <option value="pending">New Lead</option>
-                          <option value="qualified">Qualified</option>
+                          <option value="new">New Lead</option>
                           <option value="contacted">Contacted</option>
                           <option value="replied">Replied</option>
-                          <option value="demo_sent">Demo Sent</option>
+                          <option value="demo_booked">Demo Booked</option>
                           <option value="closed">Closed</option>
+                          <option value="lost">Lost</option>
                         </select>
                       </td>
                       <td>
@@ -585,14 +589,14 @@ function Dashboard() {
                           >
                             <Search size={16} />
                           </a>
-                          {lead.demo_url && (
+                          {lead.original_website && (
                             <a
-                              href={lead.demo_url}
+                              href={lead.original_website}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="btn-outline"
                               style={{ padding: '0.4rem', borderRadius: '4px', display: 'flex', alignItems: 'center', borderColor: 'var(--accent)', color: 'var(--accent)' }}
-                              title="View Demo Website"
+                              title="Visit Website"
                             >
                               <ExternalLink size={16} />
                             </a>
@@ -629,15 +633,23 @@ function Dashboard() {
 
             <div className="grid-cols-2" style={{ marginBottom: '2rem', gap: '1rem' }}>
               <div className="glass-card" style={{ padding: '1rem' }}>
-                <div className="label" style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>NICHE</div>
-                <div style={{ fontSize: '1rem' }}>{selectedLead.niche}</div>
+                <div className="label" style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>PRIMARY GAP</div>
+                <div style={{ fontSize: '1.1rem', color: 'var(--accent)', fontWeight: 700 }}>{selectedLead.primary_gap || 'No Gap Detected'}</div>
               </div>
               <div className="glass-card" style={{ padding: '1rem' }}>
-                <div className="label" style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>STATUS</div>
-                <div style={{ color: selectedLead.contacted_status === 'pending' ? 'var(--warning)' : 'var(--success)' }}>
-                  {selectedLead.contacted_status.toUpperCase()}
-                </div>
+                <div className="label" style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>OPPORTUNITY SCORE</div>
+                <div style={{ fontSize: '1.1rem', color: 'var(--success)', fontWeight: 700 }}>{selectedLead.opportunity_score || 0}%</div>
               </div>
+            </div>
+
+            <div className="glass-card" style={{ padding: '1.5rem', marginBottom: '2rem', border: '1px solid var(--primary-glow)' }}>
+              <div className="label" style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>AI INSIGHT</div>
+              <p style={{ margin: 0, fontSize: '1rem', lineHeight: 1.5, color: 'var(--text-main)' }}>{selectedLead.opportunity_insight || 'Running analysis...'}</p>
+              {selectedLead.lost_customers && (
+                <div style={{ marginTop: '1rem', padding: '0.5rem 1rem', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', borderRadius: '8px', fontSize: '0.9rem', fontWeight: 600 }}>
+                  ⚠️ Estimated Lost Customers: {selectedLead.lost_customers} / mo
+                </div>
+              )}
             </div>
 
             <h3>Activity Timeline</h3>

@@ -36,57 +36,67 @@ async function analyzeWebsite(url) {
 
         analysis.loadTimeMs = Date.now() - startTime;
 
-        // 1. Check Load Speed
+        // 1. Performance Scoring (Lighthouse-style weights)
         if (analysis.loadTimeMs > 6000) {
-            analysis.issues.push("Extremely slow load time (> 6s)");
-            analysis.qualityScore -= 30;
+            analysis.issues.push("Critical: Extremely slow load time (> 6s)");
+            analysis.qualityScore -= 40;
         } else if (analysis.loadTimeMs > 3000) {
-            analysis.issues.push("Slow load time (> 3s)");
-            analysis.qualityScore -= 15;
+            analysis.issues.push("Warning: Slow load time (> 3s)");
+            analysis.qualityScore -= 20;
         }
 
-        // 2. Check Mobile Responsiveness (Meta Viewport)
+        // 2. Mobile & UX
         const viewportMeta = await page.$('meta[name="viewport"]');
         if (viewportMeta) {
             analysis.hasMobileViewport = true;
         } else {
-            analysis.issues.push("Not optimized for mobile (Missing Viewport)");
-            analysis.qualityScore -= 20;
+            analysis.issues.push("UX: Not optimized for mobile (Missing Viewport Meta)");
+            analysis.qualityScore -= 25;
         }
 
-        // 3. Check SEO Basics
+        // 3. SEO Audit
         const title = await page.title();
-        const description = await page.$('meta[name="description"]');
-        if (title && title.length > 5) analysis.seoScore += 50;
-        if (description) analysis.seoScore += 50;
+        const description = await page.$eval('meta[name="description"]', el => el.content).catch(() => null);
+        const h1Count = await page.$$eval('h1', tags => tags.length);
+
+        if (title && title.length > 10) analysis.seoScore += 30;
+        if (description && description.length > 30) analysis.seoScore += 30;
+        if (h1Count === 1) analysis.seoScore += 40;
+        else if (h1Count === 0) analysis.issues.push("SEO: Missing H1 Tag");
+        else if (h1Count > 1) analysis.issues.push("SEO: Multiple H1 Tags (Confusing for Google)");
 
         if (analysis.seoScore < 100) {
-            analysis.issues.push("Poor basic SEO (Missing Title/Description)");
-            analysis.qualityScore -= 10;
+            analysis.qualityScore -= 15;
         }
 
-        // 4. Feature Detection (Forms & Booking)
+        // 4. Conversion & Trust Signals (CTAs, Booking, SSL)
         const pageContent = await page.content();
         const html = pageContent.toLowerCase();
 
-        if (html.includes('calendly.com') || html.includes('acuityscheduling') || html.includes('book online') || html.includes('schedule appointment')) {
+        // Detect booking systems
+        const bookingKeywords = ['calendly.com', 'acuityscheduling', 'book online', 'schedule appointment', 'reserver', 'booking'];
+        if (bookingKeywords.some(k => html.includes(k))) {
             analysis.hasBookingSystem = true;
         } else {
-            analysis.issues.push("Missing direct online booking system");
+            analysis.issues.push("Conversion: No direct online booking system detected");
+            analysis.qualityScore -= 15;
+        }
+
+        // Detect SSL
+        if (!analysis.hasSSL) {
+            analysis.issues.push("Security: Unsecured connection (Missing SSL/HTTPS)");
+            analysis.qualityScore -= 30;
+        }
+
+        // Detect Contact Forms
+        const forms = await page.$$('form');
+        const hasVisibleForm = forms.length > 0;
+        if (!hasVisibleForm) {
+            analysis.issues.push("Conversion: No visible contact form for lead capture");
             analysis.qualityScore -= 10;
         }
 
-        const forms = await page.$$('form');
-        if (forms.length > 0) analysis.hasContactForm = true;
-
-        if (!analysis.hasSSL) {
-            analysis.issues.push("Unsecured connection (Missing SSL/HTTPS)");
-            analysis.qualityScore -= 20;
-        }
-
-        // Floor the score
         analysis.qualityScore = Math.max(0, analysis.qualityScore);
-
         return analysis;
 
     } catch (e) {

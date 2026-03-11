@@ -4,7 +4,7 @@ import { Target, MessageCircle, CalendarCheck, CheckCircle2, XOctagon } from 'lu
 export default function AnalyticsBoard({ leads }) {
     // Aggregate Metrics
     const total = leads.length;
-    const contacted = leads.filter(l => l.status === 'contacted' || l.status === 'replied' || l.status === 'demo_booked' || l.status === 'closed' || l.status === 'lost').length;
+    const contacted = leads.filter(l => l.status === 'contacted' || l.status === 'replied' || l.status === 'demo_booked' || l.status === 'closed').length;
     const replied = leads.filter(l => l.status === 'replied' || l.status === 'demo_booked' || l.status === 'closed').length;
     const booked = leads.filter(l => l.status === 'demo_booked' || l.status === 'closed').length;
     const closed = leads.filter(l => l.status === 'closed').length;
