@@ -39,13 +39,14 @@ function Dashboard() {
     setIsScanning(true);
     try {
       if (!GITHUB_TOKEN) {
-        throw new Error("Missing GitHub Token. Please set VITE_GITHUB_TOKEN in GitHub Secrets and REDEPLOY.");
+        throw new Error("Missing GitHub Token. Please set VITE_GITHUB_TOKEN in GitHub Secrets (REPO SETTINGS > SECRETS > ACTIONS) and REDEPLOY.");
       }
 
+      // GitHub's modern API preference is 'Bearer' for both classic and fine-grained tokens
       const response = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/workflows/${WORKFLOW_ID}/dispatches`, {
         method: 'POST',
         headers: {
-          'Authorization': `token ${GITHUB_TOKEN}`,
+          'Authorization': `Bearer ${GITHUB_TOKEN}`,
           'Accept': 'application/vnd.github.v3+json',
           'Content-Type': 'application/json',
         },
@@ -59,7 +60,11 @@ function Dashboard() {
         alert(`🚀 Scan launched successfully for ${newNiche} in ${newLocation}! Results will appear in the dashboard soon.`);
       } else {
         const errData = await response.json();
-        throw new Error(errData.message || "GitHub API returned an error");
+        const msg = errData.message || "GitHub API returned an error";
+        if (msg === "Bad credentials") {
+          throw new Error("GitHub Token rejected (Bad credentials). Please verify your Token is valid and has 'workflow' permissions.");
+        }
+        throw new Error(msg);
       }
     } catch (error) {
       console.error("Error triggering scan:", error);
