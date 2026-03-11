@@ -61,8 +61,16 @@ function Dashboard() {
       } else {
         const errData = await response.json();
         const msg = errData.message || "GitHub API returned an error";
+
+        // Detailed diagnostic for Bad Credentials
         if (msg === "Bad credentials") {
-          throw new Error("GitHub Token rejected (Bad credentials). Please verify your Token is valid and has 'workflow' permissions.");
+          const tokenStatus = GITHUB_TOKEN ? `Present (Starts with: ${GITHUB_TOKEN.substring(0, 7)}...)` : "MISSING";
+          throw new Error(
+            `GitHub Token rejected (Bad credentials).\n\n` +
+            `DIAGNOSTICS:\n` +
+            `- Token Status: ${tokenStatus}\n` +
+            `- Action: Please ensure your token at GitHub.com/settings/tokens has 'workflow' and 'repo' scopes, then update the secret VITE_GITHUB_TOKEN in your repo settings and wait for the "Deploy Frontend" build to finish (approx 2 mins).`
+          );
         }
         throw new Error(msg);
       }
