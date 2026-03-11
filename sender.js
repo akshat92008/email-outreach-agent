@@ -71,9 +71,11 @@ async function sendEmail(lead) {
         status: 'contacted',
         last_contacted: new Date().toISOString(),
         contact_channel: 'Email',
+        follow_up_step: 0,
         history: require('firebase-admin/firestore').FieldValue.arrayUnion({
             event: 'Outreach Sent',
             channel: 'Email',
+            message: lead.outreach_email || 'Initial Email Outreach',
             timestamp: new Date().toISOString()
         })
     });
@@ -100,9 +102,11 @@ async function sendInstagramDM(lead) {
         status: 'contacted',
         last_contacted: new Date().toISOString(),
         contact_channel: 'Instagram',
+        follow_up_step: 0,
         history: require('firebase-admin/firestore').FieldValue.arrayUnion({
             event: 'Outreach Sent',
             channel: 'Instagram',
+            message: lead.outreach_ig || 'Initial IG DM Outreach',
             timestamp: new Date().toISOString()
         })
     });
@@ -129,9 +133,11 @@ async function sendSMS(lead) {
         status: 'contacted',
         last_contacted: new Date().toISOString(),
         contact_channel: 'SMS',
+        follow_up_step: 0,
         history: require('firebase-admin/firestore').FieldValue.arrayUnion({
             event: 'Outreach Sent',
             channel: 'SMS',
+            message: lead.outreach_sms || 'Initial SMS Outreach',
             timestamp: new Date().toISOString()
         })
     });
@@ -200,16 +206,18 @@ async function processFollowUps() {
         const diffTime = Math.abs(now - lastContactDate);
         const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
+        const currentStep = lead.follow_up_step || 0;
+
         let followUpMessage = null;
         let sequenceStep = 0;
 
-        if (diffDays === 3 && lead.follow_up_step !== 1) {
+        if (diffDays >= 3 && currentStep === 0) {
             followUpMessage = `Hi ${lead.name}, just floating this to the top of your inbox. Did you get a chance to see the previous email regarding your digital presence?`;
             sequenceStep = 1;
-        } else if (diffDays === 7 && lead.follow_up_step === 1) {
+        } else if (diffDays >= 7 && currentStep === 1) {
             followUpMessage = `Hey ${lead.name} team, I know things get busy. We recently helped a similar business double their leads simply by speeding up their website. Let me know if you are open to a quick look.`;
             sequenceStep = 2;
-        } else if (diffDays === 14 && lead.follow_up_step === 2) {
+        } else if (diffDays >= 14 && currentStep === 2) {
             followUpMessage = `Hi ${lead.name}. This will be my last email, but I wanted to make sure you saw the potential here. We can completely revitalize your online booking. If things open up in the future, please reach out!`;
             sequenceStep = 3;
         }
@@ -233,6 +241,7 @@ async function processFollowUps() {
                 history: require('firebase-admin/firestore').FieldValue.arrayUnion({
                     event: `Follow-Up Sequence ${sequenceStep} Sent`,
                     channel: 'Email',
+                    message: followUpMessage,
                     timestamp: now.toISOString()
                 })
             });

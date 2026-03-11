@@ -712,6 +712,36 @@ function Dashboard() {
                 )}
               </div>
 
+              {/* Outreach Drafts Display */}
+              <div style={{ marginBottom: '2rem' }}>
+                <h3 style={{ fontSize: '1rem', marginBottom: '1rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>AI Generated Outreach</h3>
+                <div style={{ display: 'grid', gap: '1rem' }}>
+                  <div className="glass-card" style={{ padding: '1rem', background: 'rgba(34, 211, 238, 0.05)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', color: 'var(--primary)' }}>
+                      <Mail size={16} /> <span style={{ fontSize: '0.8rem', fontWeight: 700 }}>EMAIL DRAFT</span>
+                    </div>
+                    {selectedLead.outreach_email_subject && <div style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.5rem' }}>Subject: {selectedLead.outreach_email_subject}</div>}
+                    <pre style={{ whiteSpace: 'pre-wrap', fontSize: '0.85rem', fontFamily: 'inherit', color: 'var(--text-main)', opacity: 0.9 }}>{selectedLead.outreach_email || 'No email generated yet.'}</pre>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <div className="glass-card" style={{ padding: '1rem', background: 'rgba(228, 64, 95, 0.05)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', color: '#E4405F' }}>
+                        <Instagram size={16} /> <span style={{ fontSize: '0.8rem', fontWeight: 700 }}>IG / FB MESSAGE</span>
+                      </div>
+                      <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-main)', opacity: 0.9 }}>{selectedLead.outreach_ig || 'No DM generated yet.'}</p>
+                    </div>
+
+                    <div className="glass-card" style={{ padding: '1rem', background: 'rgba(37, 211, 102, 0.05)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', color: '#25D366' }}>
+                        <MessageCircle size={16} /> <span style={{ fontSize: '0.8rem', fontWeight: 700 }}>SMS TEXT</span>
+                      </div>
+                      <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-main)', opacity: 0.9 }}>{selectedLead.outreach_sms || 'No SMS generated yet.'}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <h3>Activity Timeline</h3>
               <div className="timeline">
                 {(selectedLead.history || [
