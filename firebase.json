@@ -4,7 +4,7 @@
   },
   "firestore": {
     "rules": "firestore.rules",
-    "indexes": "firestore.indexes.json"
+    "indexes": "indexes_new.json"
   },
   "hosting": {
     "public": "dashboard/dist",
