@@ -1,24 +1,24 @@
 import React from 'react';
-import { PencilLine, Globe, Monitor, Palette, MoreHorizontal } from 'lucide-react';
+import { Sparkles, ArrowRight } from 'lucide-react';
 
 export default function ActionGrid() {
-  const actions = [
-    { icon: <PencilLine size={16} />, label: 'Create slides' },
-    { icon: <Globe size={16} />, label: 'Build website' },
-    { icon: <Monitor size={16} />, label: 'Develop apps' },
-    { icon: <Palette size={16} />, label: 'Design' },
-    { icon: <MoreHorizontal size={16} />, label: 'More' },
+  const templates = [
+    { label: 'HVAC with no websites' },
+    { label: 'Recently funded SaaS' },
+    { label: 'Local bakeries over 5 years old' },
+    { label: 'Real estate agents in Dubai' },
   ];
 
   return (
-    <div className="flex flex-wrap items-center justify-center gap-3 mt-8 max-w-2xl mx-auto">
-      {actions.map((action, i) => (
+    <div className="flex flex-wrap items-center justify-center gap-3 mt-10 max-w-4xl mx-auto">
+      {templates.map((template, i) => (
         <button
           key={i}
-          className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-full text-slate-300 text-sm hover:bg-white/10 hover:border-white/20 transition-all duration-300"
+          className="group flex items-center gap-3 px-5 py-2.5 bg-[#1A1A1A] border border-white/5 rounded-2xl text-slate-300 text-sm hover:bg-[#242424] hover:border-[#9D4EDD]/30 transition-all duration-500 shadow-xl"
         >
-          <span className="text-[#9D4EDD] opacity-80">{action.icon}</span>
-          {action.label}
+          <Sparkles size={14} className="text-[#9D4EDD] group-hover:scale-125 transition-transform" />
+          <span className="font-medium group-hover:text-white transition-colors">{template.label}</span>
+          <ArrowRight size={12} className="text-slate-600 group-hover:translate-x-1 group-hover:text-[#9D4EDD] transition-all" />
         </button>
       ))}
     </div>
