@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowRight } from "lucide-react";
+import { Plus, Mic, Image as ImageIcon, ArrowUp } from "lucide-react";
 
 export default function HeroSearch({ onSearch, isMinimized }) {
   const [query, setQuery] = useState("");
@@ -17,45 +17,64 @@ export default function HeroSearch({ onSearch, isMinimized }) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ 
         opacity: 1, 
-        y: isMinimized ? -200 : 0,
-        scale: isMinimized ? 0.8 : 1,
+        y: isMinimized ? -100 : 0,
+        scale: isMinimized ? 0.9 : 1,
       }}
       transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-      className={`w-full max-w-3xl mx-auto px-4 z-10 transition-all duration-700 ${
-        isMinimized ? "absolute top-20 left-1/2 -translate-x-1/2" : ""
+      className={`w-full max-w-4xl mx-auto px-4 z-10 ${
+        isMinimized ? "fixed top-12 left-1/2 -translate-x-1/2" : ""
       }`}
     >
+      {!isMinimized && (
+        <h1 className="text-4xl md:text-5xl font-semibold text-white text-center mb-10 tracking-tight">
+          What can I do for you?
+        </h1>
+      )}
+
       <form onSubmit={handleSubmit} className="relative group">
-        <div className="absolute -inset-0.5 bg-gradient-to-r from-[#9D4EDD] to-[#9D4EDD] rounded-xl blur opacity-0 group-focus-within:opacity-20 transition duration-1000 group-hover:duration-200"></div>
-        <div className="relative flex items-center bg-[#121212] border border-white/10 rounded-xl overflow-hidden focus-within:border-[#9D4EDD]/50 transition-all duration-500">
-          <input
-            type="text"
+        <div className="relative flex flex-col bg-[#1A1A1A] border border-white/10 rounded-2xl overflow-hidden focus-within:border-[#9D4EDD]/40 transition-all duration-500 shadow-2xl">
+          <textarea
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Find me roofing contractors in Seattle with slow websites..."
-            className="w-full bg-transparent text-white px-6 py-5 outline-none placeholder:text-slate-500 transition-all text-lg font-light border-none focus:ring-0"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSubmit(e);
+              }
+            }}
+            placeholder="Assign a task or ask anything"
+            className="w-full bg-transparent text-white px-6 pt-6 pb-20 outline-none placeholder:text-slate-500 transition-all text-xl font-light border-none focus:ring-0 resize-none min-h-[160px]"
             disabled={isMinimized}
           />
-          <button
-            type="submit"
-            className={`p-4 mr-2 text-slate-400 hover:text-[#9D4EDD] transition-colors duration-300 ${
-              isMinimized ? "opacity-0" : "opacity-100"
-            }`}
-          >
-            <ArrowRight size={24} />
-          </button>
+          
+          <div className="absolute bottom-4 left-4 flex items-center gap-1">
+            <button type="button" className="p-2 text-slate-500 hover:text-white transition-colors bg-white/5 rounded-full hover:bg-white/10">
+              <Plus size={20} />
+            </button>
+            <button type="button" className="p-2 text-slate-500 hover:text-white transition-colors bg-white/5 rounded-full hover:bg-white/10">
+              <Mic size={20} />
+            </button>
+            <button type="button" className="p-2 text-slate-500 hover:text-white transition-colors bg-white/5 rounded-full hover:bg-white/10">
+              <ImageIcon size={20} />
+            </button>
+          </div>
+
+          <div className="absolute bottom-4 right-4 flex items-center gap-3">
+            <div className="flex items-center gap-2 text-[10px] font-bold text-[#9D4EDD] uppercase tracking-widest bg-[#9D4EDD]/10 px-2.5 py-1 rounded">
+              <div className="w-1.5 h-1.5 rounded-full bg-[#9D4EDD] animate-pulse" />
+              Connected
+            </div>
+            <button
+              type="submit"
+              className={`p-2 bg-white/10 text-white rounded-full hover:bg-[#9D4EDD] transition-all duration-300 ${
+                query.trim() ? "opacity-100 scale-100" : "opacity-30 scale-95 pointer-events-none"
+              }`}
+            >
+              <ArrowUp size={22} />
+            </button>
+          </div>
         </div>
       </form>
-      {!isMinimized && (
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          className="mt-4 text-center text-slate-500 text-sm font-light tracking-wide"
-        >
-          Try natural language: <span className="text-white/40 italic">"Find high-intent leads in the SaaS sector..."</span>
-        </motion.p>
-      )}
     </motion.div>
   );
 }
