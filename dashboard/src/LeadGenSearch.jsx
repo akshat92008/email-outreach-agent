@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { Sparkles, ArrowRight } from "lucide-react";
 import HeroSearch from "./HeroSearch";
 import TerminalLoader from "./TerminalLoader";
 import ResultsLedger from "./ResultsLedger";
@@ -93,7 +94,7 @@ export default function LeadGenSearch() {
         </AnimatePresence>
 
         {/* Global Footer Elements */}
-        {!state === "idle" && (
+        {state !== "idle" && (
             <div className="absolute bottom-8 right-8 text-[10px] font-bold text-white/20 uppercase tracking-widest select-none">
                 AMAURA STUDIO DESIGN
             </div>
